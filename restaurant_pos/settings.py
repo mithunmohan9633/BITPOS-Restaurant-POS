@@ -1,3 +1,4 @@
+import os
 import dj_database_url
 """
 Django settings for restaurant_pos project.
@@ -77,6 +78,8 @@ WSGI_APPLICATION = 'restaurant_pos.wsgi.application'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
 
+
+
 DATABASES = {
     'default': dj_database_url.config(
         default='sqlite:///' + os.path.join(BASE_DIR, 'db.sqlite3'),
@@ -84,7 +87,7 @@ DATABASES = {
     )
 }
 
-}
+
 
 
 # Password validation
