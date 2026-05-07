@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Staff | BITPOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #1A1A2E; --card: #16213E; --primary: #D38C44; --accent: #0F3460; --text: #E8E8E8; --muted: #8892B0; --border: #233554; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        header { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); }
+        h1 { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
+        .nav-links a { color: var(--muted); text-decoration: none; margin-left: 20px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+        .nav-links a:hover { color: var(--primary); background: rgba(211,140,68,0.1); }
+        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; display: flex; gap: 30px; align-items: flex-start; }
+        .card { background: var(--card); border-radius: 16px; padding: 30px; border: 1px solid var(--border); flex: 1; }
+        .card h2 { color: var(--primary); margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px dashed var(--border); }
+        input, select { width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        input::placeholder { color: var(--muted); }
+        button { width: 100%; padding: 14px; margin-top: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+        button:hover { opacity: 0.9; }
+        .user-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid var(--border); align-items: center; }
+        .user-row:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BITPOS</h1>
+        <div class="nav-links">
+            <a href="/sales/">Sales</a>
+            <a href="/orders/">Orders</a>
+            <a href="/menu/">Menu</a>
+            <a href="/users/">Staff</a>
+            <a href="/logout/" style="color:#E94560">Logout</a>
+        </div>
+    </header>
+    <div class="container">
+        <div class="card">
+            <h2>Create New Staff</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="text" name="username" placeholder="Username" required>
+                <input type="password" name="password" placeholder="Password" required>
+                <select name="role">
+                    <option value="cashier_restaurant">Restaurant Cashier</option>
+                    <option value="cashier_retail">Retail Cashier</option>
+                </select>
+                <button type="submit">Create User</button>
+            </form>
+        </div>
+        <div class="card">
+            <h2>Existing Staff</h2>
+            {% for profile in profiles %}
+            <div class="user-row">
+                <span style="font-weight:800">{{ profile.user.username }}</span>
+                <span style="color:var(--primary); font-weight:600">{{ profile.get_role_display }}</span>
+            </div>
+            {% empty %}
+            <div style="text-align:center; padding:30px; color:var(--muted)">No staff members yet</div>
+            {% endfor %}
+        </div>
+    </div>
+</body>
+</html>

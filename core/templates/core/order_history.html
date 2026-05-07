@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order History | BITPOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #1A1A2E; --card: #16213E; --primary: #D38C44; --accent: #0F3460; --text: #E8E8E8; --muted: #8892B0; --success: #4ECB71; --purple: #6366F1; --danger: #E94560; --border: #233554; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        header { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); }
+        h1 { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
+        .nav-links a { color: var(--muted); text-decoration: none; margin-left: 20px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+        .nav-links a:hover { color: var(--primary); background: rgba(211,140,68,0.1); }
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        h2 { margin-bottom: 20px; color: var(--primary); }
+        .search-bar { display: flex; gap: 10px; margin-bottom: 25px; }
+        .search-bar input { flex: 1; padding: 14px; border-radius: 8px; border: 2px solid var(--border); background: var(--card); color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1rem; }
+        .search-bar input:focus { outline: none; border-color: var(--primary); }
+        .search-bar input::placeholder { color: var(--muted); }
+        .search-bar button { padding: 14px 25px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 800; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; }
+        th { background: var(--accent); color: var(--text); text-align: left; padding: 15px 20px; font-weight: 800; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; }
+        td { padding: 15px 20px; border-bottom: 1px solid var(--border); }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(211,140,68,0.05); }
+        .order-link { color: var(--primary); font-weight: 800; text-decoration: none; }
+        .order-link:hover { text-decoration: underline; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; }
+        .badge-cash { background: rgba(78,203,113,0.15); color: var(--success); }
+        .badge-upi { background: rgba(99,102,241,0.15); color: var(--purple); }
+        .badge-split { background: rgba(211,140,68,0.15); color: var(--primary); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BITPOS</h1>
+        <div class="nav-links">
+            <a href="/sales/">Sales</a>
+            <a href="/orders/">Orders</a>
+            <a href="/menu/">Menu</a>
+            <a href="/users/">Staff</a>
+            <a href="/logout/" style="color:#E94560">Logout</a>
+        </div>
+    </header>
+    <div class="container">
+        <h2>Order History</h2>
+        <form class="search-bar" method="GET">
+            <input type="text" name="search" placeholder="Search by Order Number..." value="{{ search }}">
+            <button type="submit">Search</button>
+        </form>
+        <table>
+            <tr><th>Order #</th><th>Date & Time</th><th>Amount</th><th>Payment</th><th>Billed By</th><th>Actions</th></tr>
+            {% for order in orders %}
+            <tr>
+                <td><a href="/orders/{{ order.order_number }}/" class="order-link">{{ order.order_number }}</a></td>
+                <td style="color:var(--muted)">{{ order.created_at|date:"d M Y, h:i A" }}</td>
+                <td style="font-weight:800; color:var(--primary)">&#8377;{{ order.total_amount }}</td>
+                <td><span class="badge {% if order.payment_method == 'cash' %}badge-cash{% elif order.payment_method == 'upi' %}badge-upi{% else %}badge-split{% endif %}">{{ order.get_payment_method_display }}</span></td>
+                <td>{{ order.billed_by.username|default:"--" }}</td>
+                <td><a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank">View Bill</a></td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--muted)">No orders found</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</body>
+</html>

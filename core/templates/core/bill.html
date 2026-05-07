@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Bill - {{ order.order_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; max-width: 350px; margin: 20px auto; color: #333; }
+        .bill-header { text-align: center; border-bottom: 2px dashed #ccc; padding-bottom: 15px; margin-bottom: 15px; }
+        .bill-header h1 { margin: 0; font-size: 1.8rem; }
+        .bill-header p { margin: 5px 0; color: #777; font-size: 0.85rem; }
+        .bill-meta { margin-bottom: 15px; font-size: 0.85rem; }
+        .bill-meta div { display: flex; justify-content: space-between; margin: 4px 0; }
+        table { width: 100%; border-collapse: collapse; margin: 15px 0; }
+        th { text-align: left; padding: 8px 0; border-bottom: 1px solid #333; font-size: 0.8rem; text-transform: uppercase; }
+        td { padding: 6px 0; border-bottom: 1px dashed #ddd; font-size: 0.9rem; }
+        .total-section { border-top: 2px dashed #333; padding-top: 10px; margin-top: 10px; }
+        .total-row { display: flex; justify-content: space-between; font-size: 1.3rem; font-weight: 800; }
+        .payment-info { margin-top: 10px; font-size: 0.85rem; color: #555; }
+        .payment-info div { display: flex; justify-content: space-between; margin: 3px 0; }
+        .footer { text-align: center; margin-top: 20px; padding-top: 15px; border-top: 2px dashed #ccc; font-size: 0.8rem; color: #777; }
+        .print-btn { display: block; text-align: center; margin: 30px auto 0; padding: 12px 30px; background: #D38C44; color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; }
+        @media print { .print-btn { display: none; } }
+    </style>
+</head>
+<body>
+    <div class="bill-header">
+        <h1>{{ company.name }}</h1>
+        <p>{{ company.address|default:"" }}</p>
+        <p style="font-weight:800; margin-top:10px">TAX INVOICE</p>
+    </div>
+
+    <div class="bill-meta">
+        <div><span>Bill No:</span><span style="font-weight:800">{{ order.order_number }}</span></div>
+        <div><span>Date:</span><span>{{ order.created_at|date:"d/m/Y" }}</span></div>
+        <div><span>Time:</span><span>{{ order.created_at|date:"h:i A" }}</span></div>
+        <div><span>Cashier:</span><span>{{ order.billed_by.username|default:"--" }}</span></div>
+    </div>
+
+    <table>
+        <tr><th>Item</th><th style="text-align:center">Qty</th><th style="text-align:right">Amount</th></tr>
+        {% for item in items %}
+        <tr>
+            <td>{{ item.item_name }}</td>
+            <td style="text-align:center">{{ item.quantity }}</td>
+            <td style="text-align:right">&#8377;{{ item.price }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <div class="total-section">
+        <div class="total-row">
+            <span>TOTAL</span>
+            <span>&#8377;{{ order.total_amount }}</span>
+        </div>
+        <div class="payment-info">
+            <div><span>Payment:</span><span>{{ order.get_payment_method_display }}</span></div>
+            {% if order.cash_amount > 0 %}
+            <div><span>Cash:</span><span>&#8377;{{ order.cash_amount }}</span></div>
+            {% endif %}
+            {% if order.upi_amount > 0 %}
+            <div><span>UPI:</span><span>&#8377;{{ order.upi_amount }}</span></div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="footer">
+        <p>Thank you for your visit!</p>
+        <p>Powered by BITPOS</p>
+    </div>
+
+    <button class="print-btn" onclick="window.print()">Print Bill</button>
+</body>
+</html>
