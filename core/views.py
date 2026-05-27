@@ -53,8 +53,13 @@ def super_admin_create_company(request):
         name = request.POST.get('name')
         address = request.POST.get('address', '')
         pos_type = request.POST.get('pos_type', 'restaurant')
+        plan_name = request.POST.get('plan_name', 'Standard')
+        valid_until = request.POST.get('valid_until')
         if name:
-            Company.objects.create(name=name, address=address, pos_type=pos_type)
+            company = Company(name=name, address=address, pos_type=pos_type, plan_name=plan_name)
+            if valid_until:
+                company.valid_until = valid_until
+            company.save()
     return HttpResponseRedirect(reverse('super_admin_dashboard'))
 
 
@@ -222,7 +227,7 @@ def sales_dashboard(request):
     company = request.user.profile.company
     
     from django.utils import timezone
-    today = timezone.now().date()
+    today = timezone.localdate()
     month_start = today.replace(day=1)
     year_start = today.replace(month=1, day=1)
 

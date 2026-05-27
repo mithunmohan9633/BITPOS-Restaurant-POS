@@ -100,21 +100,21 @@
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Today's Sales</div>
-                <div class="stat-value" style="color: var(--success)">&#8377;{{ today_total }}</div>
+                <div class="stat-value" style="color: var(--success)">&#8377;{{ today_total|floatformat:2 }}</div>
                 <div class="stat-sub">{{ today_count }} orders</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">This Month</div>
-                <div class="stat-value" style="color: var(--primary)">&#8377;{{ month_total }}</div>
+                <div class="stat-value" style="color: var(--primary)">&#8377;{{ month_total|floatformat:2 }}</div>
                 <div class="stat-sub">{{ month_count }} orders</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">This Year</div>
-                <div class="stat-value" style="color: var(--purple)">&#8377;{{ year_total }}</div>
+                <div class="stat-value" style="color: var(--purple)">&#8377;{{ year_total|floatformat:2 }}</div>
             </div>
             <div class="stat-card">
                 <div class="stat-label">All Time</div>
-                <div class="stat-value" style="color: var(--text)">&#8377;{{ all_time_total }}</div>
+                <div class="stat-value" style="color: var(--text)">&#8377;{{ all_time_total|floatformat:2 }}</div>
             </div>
         </div>
 
@@ -131,24 +131,24 @@
                     <div class="pay-row">
                         <span class="pay-label" style="color: var(--success)">Cash</span>
                         <div class="pay-bar-bg"><div class="pay-bar pay-bar-cash" id="cash-bar"></div></div>
-                        <span class="pay-amount" style="color: var(--success)">&#8377;{{ today_cash }}</span>
+                        <span class="pay-amount" style="color: var(--success)">&#8377;{{ today_cash|floatformat:2 }}</span>
                     </div>
                     <div class="pay-row">
                         <span class="pay-label" style="color: var(--purple)">UPI</span>
                         <div class="pay-bar-bg"><div class="pay-bar pay-bar-upi" id="upi-bar"></div></div>
-                        <span class="pay-amount" style="color: var(--purple)">&#8377;{{ today_upi }}</span>
+                        <span class="pay-amount" style="color: var(--purple)">&#8377;{{ today_upi|floatformat:2 }}</span>
                     </div>
                     <div style="margin-top:25px; padding-top:20px; border-top:1px solid var(--border)">
                         <h2 style="font-size:1rem; margin-bottom:15px; color: var(--primary)">Payment Breakdown (Month)</h2>
                         <div class="pay-row">
                             <span class="pay-label" style="color: var(--success)">Cash</span>
                             <div class="pay-bar-bg"><div class="pay-bar pay-bar-cash" id="mcash-bar"></div></div>
-                            <span class="pay-amount" style="color: var(--success)">&#8377;{{ month_cash }}</span>
+                            <span class="pay-amount" style="color: var(--success)">&#8377;{{ month_cash|floatformat:2 }}</span>
                         </div>
                         <div class="pay-row" style="margin-top:10px">
                             <span class="pay-label" style="color: var(--purple)">UPI</span>
                             <div class="pay-bar-bg"><div class="pay-bar pay-bar-upi" id="mupi-bar"></div></div>
-                            <span class="pay-amount" style="color: var(--purple)">&#8377;{{ month_upi }}</span>
+                            <span class="pay-amount" style="color: var(--purple)">&#8377;{{ month_upi|floatformat:2 }}</span>
                         </div>
                     </div>
                 </div>
@@ -176,7 +176,7 @@
                 <div class="product-row">
                     <span class="product-name">{{ p.item_name }}</span>
                     <span class="product-qty">{{ p.total_qty }} sold</span>
-                    <span class="product-rev">&#8377;{{ p.total_revenue }}</span>
+                    <span class="product-rev">&#8377;{{ p.total_revenue|floatformat:2 }}</span>
                 </div>
                 {% empty %}
                 <div style="text-align:center; padding:30px; color:var(--muted)">No sales today yet</div>
@@ -188,7 +188,7 @@
                 <div class="product-row">
                     <span class="product-name">{{ p.item_name }}</span>
                     <span class="product-qty">{{ p.total_qty }} sold</span>
-                    <span class="product-rev">&#8377;{{ p.total_revenue }}</span>
+                    <span class="product-rev">&#8377;{{ p.total_revenue|floatformat:2 }}</span>
                 </div>
                 {% empty %}
                 <div style="text-align:center; padding:30px; color:var(--muted)">No sales this week yet</div>
@@ -200,7 +200,7 @@
                 <div class="product-row">
                     <span class="product-name">{{ p.item_name }}</span>
                     <span class="product-qty">{{ p.total_qty }} sold</span>
-                    <span class="product-rev">&#8377;{{ p.total_revenue }}</span>
+                    <span class="product-rev">&#8377;{{ p.total_revenue|floatformat:2 }}</span>
                 </div>
                 {% empty %}
                 <div style="text-align:center; padding:30px; color:var(--muted)">No sales this month yet</div>
@@ -212,7 +212,7 @@
                 <div class="product-row">
                     <span class="product-name">{{ p.item_name }}</span>
                     <span class="product-qty">{{ p.total_qty }} sold</span>
-                    <span class="product-rev">&#8377;{{ p.total_revenue }}</span>
+                    <span class="product-rev">&#8377;{{ p.total_revenue|floatformat:2 }}</span>
                 </div>
                 {% empty %}
                 <div style="text-align:center; padding:30px; color:var(--muted)">No sales data yet</div>
@@ -258,15 +258,15 @@
 
         // Payment bars animation
         setTimeout(function() {
-            var todayCash = {{ today_cash }};
-            var todayUpi = {{ today_upi }};
+            var todayCash = {{ today_cash|floatformat:2 }};
+            var todayUpi = {{ today_upi|floatformat:2 }};
             var todayTotal = todayCash + todayUpi;
             if (todayTotal > 0) {
                 document.getElementById('cash-bar').style.width = (todayCash / todayTotal * 100) + '%';
                 document.getElementById('upi-bar').style.width = (todayUpi / todayTotal * 100) + '%';
             }
-            var monthCash = {{ month_cash }};
-            var monthUpi = {{ month_upi }};
+            var monthCash = {{ month_cash|floatformat:2 }};
+            var monthUpi = {{ month_upi|floatformat:2 }};
             var monthTotal = monthCash + monthUpi;
             if (monthTotal > 0) {
                 document.getElementById('mcash-bar').style.width = (monthCash / monthTotal * 100) + '%';
