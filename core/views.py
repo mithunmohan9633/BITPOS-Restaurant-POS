@@ -145,7 +145,7 @@ def manage_menu(request):
             price = request.POST.get('price')
             if item_id and name and price and category_id:
                 try:
-                    from core.models import MenuItem, Category
+                    
                     item = MenuItem.objects.get(id=item_id, company=company)
                     category = Category.objects.get(id=category_id, company=company)
                     item.name = name
