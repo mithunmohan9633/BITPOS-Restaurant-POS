@@ -138,6 +138,22 @@ def manage_menu(request):
             if name and price and category_id:
                 category = Category.objects.get(id=category_id, company=company)
                 MenuItem.objects.create(name=name, price=price, category=category, company=company)
+        elif action == 'edit_item':
+            item_id = request.POST.get('item_id')
+            category_id = request.POST.get('category')
+            name = request.POST.get('name')
+            price = request.POST.get('price')
+            if item_id and name and price and category_id:
+                try:
+                    from core.models import MenuItem, Category
+                    item = MenuItem.objects.get(id=item_id, company=company)
+                    category = Category.objects.get(id=category_id, company=company)
+                    item.name = name
+                    item.price = price
+                    item.category = category
+                    item.save()
+                except Exception as e:
+                    pass
         return HttpResponseRedirect(reverse('manage_menu'))
     categories = Category.objects.filter(company=company).prefetch_related('items')
     return render(request, 'core/manage_menu.html', {'categories': categories})

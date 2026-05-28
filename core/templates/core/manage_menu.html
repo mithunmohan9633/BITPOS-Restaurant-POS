@@ -27,6 +27,10 @@
         .cat-item { font-weight: 800; font-size: 1.1rem; color: var(--primary); margin-top: 15px; }
         .menu-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
         .menu-item:last-child { border-bottom: none; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: var(--card); margin: 10% auto; padding: 25px; border: 1px solid var(--border); border-radius: 16px; width: 400px; max-width: 90%; }
+        .close-btn { color: var(--muted); float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: var(--text); }
     </style>
 </head>
 <body>
@@ -74,9 +78,12 @@
                 {% for cat in categories %}
                 <div class="cat-item">{{ cat.name }}</div>
                 {% for item in cat.items.all %}
-                <div class="menu-item">
+                <div class="menu-item" style="align-items:center;">
                     <span>{{ item.name }}</span>
-                    <span style="font-weight:800;color:var(--primary)">&#8377;{{ item.price }}</span>
+                    <div>
+                        <span style="font-weight:800;color:var(--primary);margin-right:15px;">&#8377;{{ item.price }}</span>
+                        <button onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ cat.id }}')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Edit</button>
+                    </div>
                 </div>
                 {% empty %}
                 <div class="menu-item" style="color:var(--muted)">No items yet</div>
@@ -87,5 +94,50 @@
             </div>
         </div>
     </div>
+    <!-- Edit Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h2 style="color:var(--primary);margin-bottom:20px;border-bottom:2px dashed var(--border);padding-bottom:12px;">Edit Menu Item</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_item">
+                <input type="hidden" name="item_id" id="edit_item_id">
+                
+                <label style="color:var(--muted);font-size:0.9rem;">Category</label>
+                <select name="category" id="edit_category" required>
+                    {% for cat in categories %}
+                    <option value="{{ cat.id }}">{{ cat.name }}</option>
+                    {% endfor %}
+                </select>
+                
+                <label style="color:var(--muted);font-size:0.9rem;">Item Name</label>
+                <input type="text" name="name" id="edit_name" required>
+                
+                <label style="color:var(--muted);font-size:0.9rem;">Price (&#8377;)</label>
+                <input type="number" step="0.01" name="price" id="edit_price" required>
+                
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+    <script>
+        function openEditModal(id, name, price, categoryId) {
+            document.getElementById('edit_item_id').value = id;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_price').value = price;
+            document.getElementById('edit_category').value = categoryId;
+            document.getElementById('editModal').style.display = 'block';
+        }
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        window.onclick = function(event) {
+            var modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+    </script>
 </body>
 </html>
