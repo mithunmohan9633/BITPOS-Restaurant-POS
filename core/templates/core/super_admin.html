@@ -66,9 +66,25 @@
         <div class="logo">BITPOS <span>| Control Panel</span></div>
         <div class="header-right">
             <div class="badge">SUPER ADMIN</div>
-            <a href="/logout/" class="logout-btn">Logout</a>
+            <a href="/logout/" onclick="return confirm('Are you sure you want to logout?');" class="logout-btn">Logout</a>
         </div>
     </header>
+
+    {% if messages %}
+    <div id="toast-container" style="position:fixed; top:30px; right:30px; z-index:9999;">
+        {% for message in messages %}
+        <div style="padding:15px 25px; border-radius:8px; margin-bottom:10px; font-weight:600; box-shadow:0 4px 15px rgba(0,0,0,0.4); animation:slideIn 0.4s ease-out forwards, fadeOut 0.4s ease-in 4s forwards;
+            {% if message.tags == 'error' %}background:#E94560; color:white; border-left:5px solid #bd2840;
+            {% else %}background:#4CAF50; color:white; border-left:5px solid #388E3C;{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+    </div>
+    <style>
+        @keyframes slideIn { from { transform:translateX(100%); opacity:0; } to { transform:translateX(0); opacity:1; } }
+        @keyframes fadeOut { from { opacity:1; } to { opacity:0; visibility:hidden; } }
+    </style>
+    {% endif %}
 
     <div class="container">
         <div class="stats-row" style="grid-template-columns: repeat(4, 1fr);">
@@ -93,9 +109,16 @@
         <div class="grid-2">
             <div class="card">
                 <h2><span class="icon">+</span> Register New Company</h2>
-                <form method="POST" action="/super-admin/create-company/">
+                <!-- Hidden list of existing company names for live duplicate check -->
+                <datalist id="existing-companies">
+                    {% for comp in companies %}<option value="{{ comp.name }}">{% endfor %}
+                </datalist>
+                <form method="POST" action="/super-admin/create-company/" id="registerCompanyForm">
                     {% csrf_token %}
-                    <input type="text" name="name" placeholder="Company / Store Name" required>
+                    <input type="text" id="company-name-input" name="name" placeholder="Company / Store Name" required autocomplete="off" oninput="checkDuplicateCompany(this)">
+                    <div id="company-duplicate-warning" style="display:none; color:#E94560; font-size:0.85rem; font-weight:700; margin-top:-5px; padding:8px 12px; background:rgba(233,69,96,0.1); border-radius:6px; border-left:3px solid #E94560;">
+                        ⚠ A company with this name already exists! Use the <strong>Edit</strong> button to update it.
+                    </div>
                     <input type="text" name="address" placeholder="Address (Optional)">
                     <div style="display: flex; gap: 10px;">
                         <select name="pos_type" style="flex: 1;">
@@ -112,14 +135,15 @@
                         <label style="font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 5px;">Valid Until</label>
                         <input type="date" name="valid_until" required>
                     </div>
-                    <button type="submit" class="btn btn-primary">Register Company</button>
+                    <button type="submit" id="register-company-btn" class="btn btn-primary">Register Company</button>
                 </form>
             </div>
 
             <div class="card">
                 <h2><span class="icon">+</span> Create Store Admin</h2>
-                <form method="POST" action="/super-admin/create-admin/">
+                <form method="POST" action="{% url 'super_admin_create_admin' %}">
                     {% csrf_token %}
+                    <input type="hidden" name="action" value="add">
                     <input type="text" name="username" placeholder="Admin Username" required>
                     <input type="password" name="password" placeholder="Admin Password" required>
                     <select name="company" required>
@@ -162,11 +186,26 @@
                         {% endif %}
                     </td>
                     <td>
-                        <div style="display: flex; gap: 8px; align-items: center;">
-                            <a href="/super-admin/toggle-company/{{ comp.id }}/" class="toggle-btn {% if comp.is_active %}toggle-block{% else %}toggle-unblock{% endif %}" style="flex: 1; text-align: center;">
+                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                            <button 
+                                onclick="viewCompanyDetails(this)"
+                                data-name="{{ comp.name|escapejs }}"
+                                data-address="{{ comp.address|escapejs }}"
+                                data-pos="{{ comp.get_pos_type_display }}"
+                                data-plan="{{ comp.plan_name }}"
+                                data-valid="{{ comp.valid_until|date:'d M Y'|default:'No Date' }}"
+                                data-status="{% if comp.is_active %}Active{% else %}Blocked{% endif %}"
+                                data-created="{{ comp.created_at|date:'d M Y' }}"
+                                class="toggle-btn" style="background: rgba(78,203,113,0.15); color:#4ECB71;">Details</button>
+                            <a href="/super-admin/toggle-company/{{ comp.id }}/" class="toggle-btn {% if comp.is_active %}toggle-block{% else %}toggle-unblock{% endif %}" onclick="return confirm('Change status for this company?');">
                                 {% if comp.is_active %}Block{% else %}Unblock{% endif %}
                             </a>
-                            <button onclick="toggleRenew('{{ comp.id }}')" class="toggle-btn" style="background: rgba(255, 215, 0, 0.15); color: #FFD700; flex: 1;">Renew</button>
+                            <button onclick="toggleRenew('{{ comp.id }}')" class="toggle-btn" style="background:rgba(255,215,0,0.15); color:#FFD700;">Renew</button>
+                            <button onclick="openEditCompanyModal('{{ comp.id }}', '{{ comp.name|escapejs }}', '{{ comp.address|escapejs }}', '{{ comp.pos_type }}', '{{ comp.plan_name }}', '{{ comp.valid_until|date:'Y-m-d'|default:'' }}')" class="toggle-btn" style="background:rgba(15,52,96,0.6); color:white;">Edit</button>
+                            <form method="POST" action="{% url 'super_admin_delete_company' comp.id %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to permanently remove this company and ALL its data?');">
+                                {% csrf_token %}
+                                <button type="submit" class="toggle-btn" style="background:rgba(233,69,96,0.2); color:var(--danger);">Remove</button>
+                            </form>
                         </div>
                     </td>
                 </tr>
@@ -204,6 +243,7 @@
                     <th>Username</th>
                     <th>Assigned Company</th>
                     <th>Company Status</th>
+                    <th>Action</th>
                 </tr>
                 {% for profile in admins %}
                 <tr>
@@ -216,15 +256,94 @@
                         <span class="status-blocked">Blocked</span>
                         {% endif %}
                     </td>
+                    <td>
+                        <button onclick="openEditAdminModal('{{ profile.user.id }}', '{{ profile.user.username }}', '{{ profile.company.id }}')" class="toggle-btn" style="background:var(--accent); color:white; margin-right:5px;">Edit</button>
+                        <form method="POST" action="{% url 'super_admin_create_admin' %}" style="display:inline;" onsubmit="return confirm('Are you sure you want to remove this admin?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="user_id" value="{{ profile.user.id }}">
+                            <button type="submit" class="toggle-btn" style="background:var(--danger); color:white;">Remove</button>
+                        </form>
+                    </td>
                 </tr>
                 {% empty %}
-                <tr><td colspan="3" style="text-align:center; color: var(--muted); padding: 30px;">No store admins created yet</td></tr>
+                <tr><td colspan="4" style="text-align:center; color: var(--muted); padding: 30px;">No store admins created yet</td></tr>
                 {% endfor %}
             </table>
         </div>
     </div>
 
+    <!-- Edit Admin Modal -->
+    <div id="editAdminModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
+        <div style="background-color:var(--card); margin:10% auto; padding:25px; border:1px solid var(--border); border-radius:16px; width:400px; max-width:90%;">
+            <span onclick="closeEditAdminModal()" style="color:var(--muted); float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:20px;">Edit Store Admin</h2>
+            <form method="POST" action="{% url 'super_admin_create_admin' %}" onsubmit="return confirm('Are you sure you want to save these changes?');">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit">
+                <input type="hidden" name="user_id" id="edit_admin_id">
+                
+                <input type="text" name="username" id="edit_admin_username" required style="width:100%; padding:14px; margin-bottom:10px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                <input type="password" name="password" placeholder="New Password (leave blank to keep)" style="width:100%; padding:14px; margin-bottom:10px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                <select name="company" id="edit_admin_company" required style="width:100%; padding:14px; margin-bottom:15px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                    {% for comp in companies %}
+                    <option value="{{ comp.id }}">{{ comp.name }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Company Details Modal -->
+    <div id="companyDetailsModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
+        <div style="background-color:var(--card); margin:10% auto; padding:30px; border:1px solid var(--border); border-radius:16px; width:450px; max-width:90%; box-shadow: 0 10px 30px rgba(0,0,0,0.5);">
+            <span onclick="document.getElementById('companyDetailsModal').style.display='none'" style="color:var(--muted); float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:25px; border-bottom:2px dashed var(--border); padding-bottom:10px;">Company Details</h2>
+            
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">Name:</strong> <span id="cd-name" style="font-weight:800; text-align:right;"></span></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">Address:</strong> <span id="cd-address" style="text-align:right; max-width:250px; line-height:1.4;"></span></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">POS Type:</strong> <span id="cd-pos" style="font-weight:600;"></span></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">Plan:</strong> <span id="cd-plan" style="font-weight:600; color:var(--primary);"></span></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">Expiry Date:</strong> <span id="cd-valid" style="font-weight:600;"></span></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">Status:</strong> <span id="cd-status" style="font-weight:800;"></span></div>
+            <div style="margin-bottom:15px; display:flex; justify-content:space-between;"><strong style="color:var(--muted);">Registered On:</strong> <span id="cd-created"></span></div>
+        </div>
+    </div>
+    
     <script>
+        function viewCompanyDetails(btn) {
+            var name = btn.getAttribute('data-name');
+            var address = btn.getAttribute('data-address');
+            var pos = btn.getAttribute('data-pos');
+            var plan = btn.getAttribute('data-plan');
+            var valid = btn.getAttribute('data-valid');
+            var status = btn.getAttribute('data-status');
+            var created = btn.getAttribute('data-created');
+            document.getElementById('cd-name').innerText = name;
+            document.getElementById('cd-address').innerText = address || 'No Address Provided';
+            document.getElementById('cd-pos').innerText = pos;
+            document.getElementById('cd-plan').innerText = plan;
+            document.getElementById('cd-valid').innerText = valid;
+            document.getElementById('cd-status').innerText = status;
+            
+            let statEl = document.getElementById('cd-status');
+            if (status === 'Active') {
+                statEl.style.color = 'var(--success)';
+            } else {
+                statEl.style.color = 'var(--danger)';
+            }
+            
+            document.getElementById('cd-created').innerText = created;
+            document.getElementById('companyDetailsModal').style.display = 'block';
+        }
+        
+        window.onclick = function(event) {
+            var modal1 = document.getElementById('editAdminModal');
+            var modal2 = document.getElementById('companyDetailsModal');
+            if (event.target == modal1) { modal1.style.display = "none"; }
+            if (event.target == modal2) { modal2.style.display = "none"; }
+        }
         function toggleRenew(id) {
             const row = document.getElementById('renew-row-' + id);
             if (row.style.display === 'none') {
@@ -233,6 +352,88 @@
                 row.style.display = 'none';
             }
         }
+
+        // Live duplicate company check
+        var existingCompanies = [{% for comp in companies %}'{{ comp.name|lower|escapejs }}',{% endfor %}];
+        function checkDuplicateCompany(input) {
+            var val = input.value.trim().toLowerCase();
+            var warning = document.getElementById('company-duplicate-warning');
+            var btn = document.getElementById('register-company-btn');
+            if (val && existingCompanies.indexOf(val) !== -1) {
+                warning.style.display = 'block';
+                btn.disabled = true;
+                btn.style.opacity = '0.5';
+                btn.style.cursor = 'not-allowed';
+            } else {
+                warning.style.display = 'none';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+                btn.style.cursor = 'pointer';
+            }
+        }
+        
+        function openEditAdminModal(id, username, companyId) {
+            document.getElementById('edit_admin_id').value = id;
+            document.getElementById('edit_admin_username').value = username;
+            document.getElementById('edit_admin_company').value = companyId;
+            document.getElementById('editAdminModal').style.display = 'block';
+        }
+        function closeEditAdminModal() {
+            document.getElementById('editAdminModal').style.display = 'none';
+        }
+
+        function openEditCompanyModal(id, name, address, posType, plan, validUntil) {
+            document.getElementById('ec_id').value = id;
+            document.getElementById('ec_name').value = name;
+            document.getElementById('ec_address').value = address;
+            document.getElementById('ec_pos_type').value = posType;
+            document.getElementById('ec_plan').value = plan;
+            document.getElementById('ec_valid_until').value = validUntil;
+            document.getElementById('editCompanyForm').action = '/super-admin/edit-company/' + id + '/';
+            document.getElementById('editCompanyModal').style.display = 'block';
+        }
+        function closeEditCompanyModal() {
+            document.getElementById('editCompanyModal').style.display = 'none';
+        }
+
+        window.onclick = function(event) {
+            var m1 = document.getElementById('editAdminModal');
+            var m2 = document.getElementById('companyDetailsModal');
+            var m3 = document.getElementById('editCompanyModal');
+            if (event.target == m1) m1.style.display = 'none';
+            if (event.target == m2) m2.style.display = 'none';
+            if (event.target == m3) m3.style.display = 'none';
+        }
     </script>
+
+    <!-- Edit Company Modal -->
+    <div id="editCompanyModal" style="display:none; position:fixed; z-index:1001; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
+        <div style="background-color:var(--card); margin:8% auto; padding:30px; border:1px solid var(--border); border-radius:16px; width:460px; max-width:92%; box-shadow:0 10px 30px rgba(0,0,0,0.5);">
+            <span onclick="closeEditCompanyModal()" style="color:var(--muted); float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:20px; border-bottom:2px dashed var(--border); padding-bottom:10px;">Edit Company</h2>
+            <form id="editCompanyForm" method="POST" onsubmit="return confirm('Save changes to this company?');">
+                {% csrf_token %}
+                <input type="hidden" id="ec_id">
+                <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">Company Name</label>
+                <input type="text" id="ec_name" name="name" required style="width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">Address</label>
+                <input type="text" id="ec_address" name="address" style="width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">POS Type</label>
+                <select id="ec_pos_type" name="pos_type" style="width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                    <option value="restaurant">Restaurant POS</option>
+                    <option value="retail">Retail POS</option>
+                </select>
+                <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">Plan</label>
+                <select id="ec_plan" name="plan_name" style="width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                    <option value="Basic">Basic</option>
+                    <option value="Standard">Standard</option>
+                    <option value="Premium">Premium</option>
+                </select>
+                <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">Valid Until</label>
+                <input type="date" id="ec_valid_until" name="valid_until" style="width:100%; padding:12px; margin-bottom:18px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                <button type="submit" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer;">Save Changes</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

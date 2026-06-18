@@ -89,7 +89,7 @@
         <h1>BITPOS</h1>
         <div style='font-weight: 600; color: #8A7A6F; display: flex; align-items: center;'>
             <span style='margin-right:20px'>Direct Sale Mode</span>
-            <a href='/logout/' style='color:#C96459;text-decoration:none;font-weight:800;padding:8px 12px;background:#FFF9F8;border-radius:8px'>Logout</a>
+            <a href='/logout/' onclick="return confirm('Are you sure you want to logout?');" style='color:#C96459;text-decoration:none;font-weight:800;padding:8px 12px;background:#FFF9F8;border-radius:8px'>Logout</a>
         </div>
     </header>
     <div class='main-container'>
@@ -200,6 +200,11 @@
             updateCartUI();
         }
 
+        function deleteFromCart(id) {
+            if (cart[id]) { delete cart[id]; }
+            updateCartUI();
+        }
+
         function getTotal() {
             let total = 0;
             for (let id in cart) { total += cart[id].price * cart[id].qty; }
@@ -222,12 +227,16 @@
                 let div = document.createElement('div');
                 div.className = 'cart-item';
                 div.innerHTML = '<div style="display:flex; align-items:center;">' +
-                    '<span class="cart-item-qty">' + item.qty + '</span>' +
+                    '<div style="display:flex; align-items:center; background:white; border:2px solid var(--border); border-radius:8px; margin-right:15px; overflow:hidden;">' +
+                    '<button onclick="removeFromCart(\'' + id + '\')" style="border:none; background:transparent; padding:5px 12px; cursor:pointer; font-weight:900; font-size:1.1rem; color:var(--primary); transition:0.2s;">-</button>' +
+                    '<span class="cart-item-qty" style="margin:0; background:transparent; padding:0 2px; min-width:20px; text-align:center;">' + item.qty + '</span>' +
+                    '<button onclick="addToCart(\'' + id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + ')" style="border:none; background:transparent; padding:5px 12px; cursor:pointer; font-weight:900; font-size:1.1rem; color:var(--primary); transition:0.2s;">+</button>' +
+                    '</div>' +
                     '<div class="cart-item-info">' +
                     '<span class="cart-item-name">' + item.name + '</span>' +
                     '<span class="cart-item-price">' + RUPEE + itemTotal.toFixed(2) + '</span>' +
                     '</div></div>' +
-                    '<div class="cart-remove" onclick="removeFromCart(\'' + id + '\')">&#10005;</div>';
+                    '<div class="cart-remove" onclick="deleteFromCart(\'' + id + '\')" title="Remove Completely">&#128465;</div>';
                 cartContainer.appendChild(div);
             }
 

@@ -5,6 +5,7 @@ from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
+from django.contrib import messages
 from .models import Company, Category, MenuItem, UserProfile
 
 
@@ -50,16 +51,64 @@ def super_admin_create_company(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden("Access Denied.")
     if request.method == 'POST':
-        name = request.POST.get('name')
+        name = request.POST.get('name', '').strip()
         address = request.POST.get('address', '')
         pos_type = request.POST.get('pos_type', 'restaurant')
         plan_name = request.POST.get('plan_name', 'Standard')
         valid_until = request.POST.get('valid_until')
         if name:
-            company = Company(name=name, address=address, pos_type=pos_type, plan_name=plan_name)
+            existing = Company.objects.filter(name__iexact=name).first()
+            if existing:
+                # Block duplicate registration — show clear error
+                messages.error(request, f"A company named '{existing.name}' already exists! Use the Edit button on the existing company to update its details.")
+            else:
+                company = Company(name=name, address=address, pos_type=pos_type, plan_name=plan_name)
+                if valid_until:
+                    company.valid_until = valid_until
+                company.save()
+                messages.success(request, f"Company '{name}' registered successfully.")
+    return HttpResponseRedirect(reverse('super_admin_dashboard'))
+
+
+
+
+@login_required(login_url='login_view')
+def super_admin_edit_company(request, company_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Access Denied.')
+    if request.method == 'POST':
+        try:
+            company = Company.objects.get(id=company_id)
+            company.name = request.POST.get('name', company.name)
+            company.address = request.POST.get('address', company.address)
+            company.pos_type = request.POST.get('pos_type', company.pos_type)
+            company.plan_name = request.POST.get('plan_name', company.plan_name)
+            valid_until = request.POST.get('valid_until')
             if valid_until:
                 company.valid_until = valid_until
             company.save()
+            messages.success(request, 'Company updated successfully.')
+        except Company.DoesNotExist:
+            messages.error(request, 'Company not found.')
+    return HttpResponseRedirect(reverse('super_admin_dashboard'))
+
+
+@login_required(login_url='login_view')
+def super_admin_delete_company(request, company_id):
+    if not request.user.is_superuser:
+        return HttpResponseForbidden('Access Denied.')
+    if request.method == 'POST':
+        try:
+            company = Company.objects.get(id=company_id)
+            # Get all users linked to this company via UserProfile and delete them
+            # (CASCADE deletes profile, but not the auth User itself)
+            user_ids = UserProfile.objects.filter(company=company).values_list('user_id', flat=True)
+            User.objects.filter(id__in=user_ids).delete()
+            # Now delete the company — cascades to Category, MenuItem, Table, Order, OrderItem
+            company.delete()
+            messages.success(request, 'Company and all related data (users, menu, orders) removed successfully.')
+        except Company.DoesNotExist:
+            messages.error(request, 'Company not found.')
     return HttpResponseRedirect(reverse('super_admin_dashboard'))
 
 
@@ -68,14 +117,54 @@ def super_admin_create_admin(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden("Access Denied.")
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        company_id = request.POST.get('company')
-        if username and password and company_id:
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_user(username=username, password=password)
-                company = Company.objects.get(id=company_id)
-                UserProfile.objects.create(user=user, role='admin', company=company)
+        action = request.POST.get('action', 'add')
+        if action == 'add':
+            username = request.POST.get('username', '').strip()
+            password = request.POST.get('password')
+            company_id = request.POST.get('company')
+            if username and password and company_id:
+                # Check 1: Username must be unique
+                if User.objects.filter(username=username).exists():
+                    messages.error(request, f"Username '{username}' is already taken. Please choose a different username.")
+                # Check 2: Company must not already have an admin
+                elif UserProfile.objects.filter(company_id=company_id, role='admin').exists():
+                    existing_admin = UserProfile.objects.get(company_id=company_id, role='admin')
+                    messages.error(request, f"Company already has an admin '{existing_admin.user.username}'. Edit the existing admin or remove them first.")
+                else:
+                    user = User.objects.create_user(username=username, password=password)
+                    company = Company.objects.get(id=company_id)
+                    UserProfile.objects.create(user=user, role='admin', company=company)
+                    messages.success(request, f"Admin '{username}' created successfully for {company.name}.")
+        elif action == 'edit':
+            user_id = request.POST.get('user_id')
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            company_id = request.POST.get('company')
+            if user_id and username and company_id:
+                try:
+                    user = User.objects.get(id=user_id, profile__role='admin')
+                    if User.objects.filter(username=username).exclude(id=user_id).exists():
+                        messages.error(request, 'Username already taken.')
+                    else:
+                        user.username = username
+                        if password:
+                            user.set_password(password)
+                        user.save()
+                        company = Company.objects.get(id=company_id)
+                        user.profile.company = company
+                        user.profile.save()
+                        messages.success(request, 'Admin user updated successfully.')
+                except Exception as e:
+                    messages.error(request, 'Error updating admin user.')
+        elif action == 'delete':
+            user_id = request.POST.get('user_id')
+            if user_id:
+                try:
+                    user = User.objects.get(id=user_id, profile__role='admin')
+                    user.delete()
+                    messages.success(request, 'Admin user deleted successfully.')
+                except Exception as e:
+                    messages.error(request, 'Error deleting admin user.')
     return HttpResponseRedirect(reverse('super_admin_dashboard'))
 
 
@@ -108,14 +197,49 @@ def manage_users(request):
         return HttpResponseForbidden("Access Denied: Only Store Admins can manage users.")
     company = request.user.profile.company
     if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
-        role = request.POST.get('role')
-        if username and password:
-            if not User.objects.filter(username=username).exists():
-                user = User.objects.create_user(username=username, password=password)
-                UserProfile.objects.create(user=user, role=role, company=company)
-            return HttpResponseRedirect(reverse('manage_users'))
+        action = request.POST.get('action', 'add')
+        if action == 'add':
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            role = request.POST.get('role')
+            if username and password:
+                if not User.objects.filter(username=username).exists():
+                    user = User.objects.create_user(username=username, password=password)
+                    UserProfile.objects.create(user=user, role=role, company=company)
+                    messages.success(request, 'User added successfully.')
+                else:
+                    messages.error(request, 'User already exists.')
+        elif action == 'edit':
+            user_id = request.POST.get('user_id')
+            username = request.POST.get('username')
+            password = request.POST.get('password')
+            role = request.POST.get('role')
+            if user_id and username:
+                try:
+                    user = User.objects.get(id=user_id, profile__company=company)
+                    if User.objects.filter(username=username).exclude(id=user_id).exists():
+                        messages.error(request, 'Username already taken.')
+                    else:
+                        user.username = username
+                        if password:
+                            user.set_password(password)
+                        user.save()
+                        if hasattr(user, 'profile'):
+                            user.profile.role = role
+                            user.profile.save()
+                        messages.success(request, 'User updated successfully.')
+                except Exception as e:
+                    messages.error(request, 'Error updating user.')
+        elif action == 'delete':
+            user_id = request.POST.get('user_id')
+            if user_id:
+                try:
+                    user = User.objects.get(id=user_id, profile__company=company)
+                    user.delete()
+                    messages.success(request, 'User deleted successfully.')
+                except Exception as e:
+                    messages.error(request, 'Error deleting user.')
+        return HttpResponseRedirect(reverse('manage_users'))
     profiles = UserProfile.objects.filter(company=company)
     return render(request, 'core/manage_users.html', {'profiles': profiles})
 
@@ -130,30 +254,41 @@ def manage_menu(request):
         if action == 'add_category':
             name = request.POST.get('name')
             if name:
-                Category.objects.create(name=name, company=company)
+                if Category.objects.filter(company=company, name__iexact=name).exists():
+                    messages.error(request, f"A category with the name '{name}' already exists.")
+                else:
+                    Category.objects.create(name=name, company=company)
+                    messages.success(request, "Category added successfully.")
         elif action == 'add_item':
             category_id = request.POST.get('category')
             name = request.POST.get('name')
             price = request.POST.get('price')
             if name and price and category_id:
-                category = Category.objects.get(id=category_id, company=company)
-                MenuItem.objects.create(name=name, price=price, category=category, company=company)
+                if MenuItem.objects.filter(company=company, name__iexact=name).exists():
+                    messages.error(request, f"A product with the name '{name}' already exists.")
+                else:
+                    category = Category.objects.get(id=category_id, company=company)
+                    MenuItem.objects.create(name=name, price=price, category=category, company=company)
+                    messages.success(request, "Product added successfully.")
         elif action == 'edit_item':
             item_id = request.POST.get('item_id')
             category_id = request.POST.get('category')
             name = request.POST.get('name')
             price = request.POST.get('price')
             if item_id and name and price and category_id:
-                try:
-                    
-                    item = MenuItem.objects.get(id=item_id, company=company)
-                    category = Category.objects.get(id=category_id, company=company)
-                    item.name = name
-                    item.price = price
-                    item.category = category
-                    item.save()
-                except Exception as e:
-                    pass
+                if MenuItem.objects.filter(company=company, name__iexact=name).exclude(id=item_id).exists():
+                    messages.error(request, f"A product with the name '{name}' already exists.")
+                else:
+                    try:
+                        item = MenuItem.objects.get(id=item_id, company=company)
+                        category = Category.objects.get(id=category_id, company=company)
+                        item.name = name
+                        item.price = price
+                        item.category = category
+                        item.save()
+                        messages.success(request, "Product updated successfully.")
+                    except Exception as e:
+                        pass
         return HttpResponseRedirect(reverse('manage_menu'))
     categories = Category.objects.filter(company=company).prefetch_related('items')
     return render(request, 'core/manage_menu.html', {'categories': categories})
@@ -210,12 +345,25 @@ def order_history(request):
         return HttpResponseForbidden("Access Denied.")
     company = request.user.profile.company
     orders = Order.objects.filter(company=company).order_by('-created_at')
-    
-    search = request.GET.get('search', '')
+
+    search = request.GET.get('search', '').strip()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+
     if search:
         orders = orders.filter(order_number__icontains=search)
-    
-    return render(request, 'core/order_history.html', {'orders': orders, 'search': search})
+    if date_from:
+        orders = orders.filter(created_at__date__gte=date_from)
+    if date_to:
+        orders = orders.filter(created_at__date__lte=date_to)
+
+    return render(request, 'core/order_history.html', {
+        'orders': orders,
+        'search': search,
+        'date_from': date_from,
+        'date_to': date_to,
+        'total_results': orders.count(),
+    })
 
 
 @login_required(login_url='login_view')
