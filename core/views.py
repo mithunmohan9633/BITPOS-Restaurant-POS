@@ -7,6 +7,24 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
 from .models import Company, Category, MenuItem, UserProfile
+import re
+
+def validate_credentials(username, password=None):
+    errors = []
+    if not re.match(r'^[a-z0-9]+$', username):
+        errors.append("Username must be alphanumeric and lowercase only.")
+    if password:
+        if len(password) < 8:
+            errors.append("Password must be at least 8 characters long.")
+        if not re.search(r'[A-Z]', password):
+            errors.append("Password must contain at least one uppercase letter.")
+        if not re.search(r'[a-z]', password):
+            errors.append("Password must contain at least one lowercase letter.")
+        if not re.search(r'[0-9]', password):
+            errors.append("Password must contain at least one number.")
+        if not re.search(r'[^A-Za-z0-9]', password):
+            errors.append("Password must contain at least one special character.")
+    return errors
 
 
 def login_view(request):
@@ -123,8 +141,12 @@ def super_admin_create_admin(request):
             password = request.POST.get('password')
             company_id = request.POST.get('company')
             if username and password and company_id:
+                errors = validate_credentials(username, password)
+                if errors:
+                    for error in errors:
+                        messages.error(request, error)
                 # Check 1: Username must be unique
-                if User.objects.filter(username=username).exists():
+                elif User.objects.filter(username=username).exists():
                     messages.error(request, f"Username '{username}' is already taken. Please choose a different username.")
                 # Check 2: Company must not already have an admin
                 elif UserProfile.objects.filter(company_id=company_id, role='admin').exists():
@@ -141,21 +163,26 @@ def super_admin_create_admin(request):
             password = request.POST.get('password')
             company_id = request.POST.get('company')
             if user_id and username and company_id:
-                try:
-                    user = User.objects.get(id=user_id, profile__role='admin')
-                    if User.objects.filter(username=username).exclude(id=user_id).exists():
-                        messages.error(request, 'Username already taken.')
-                    else:
-                        user.username = username
-                        if password:
-                            user.set_password(password)
-                        user.save()
-                        company = Company.objects.get(id=company_id)
-                        user.profile.company = company
-                        user.profile.save()
-                        messages.success(request, 'Admin user updated successfully.')
-                except Exception as e:
-                    messages.error(request, 'Error updating admin user.')
+                errors = validate_credentials(username, password if password else None)
+                if errors:
+                    for error in errors:
+                        messages.error(request, error)
+                else:
+                    try:
+                        user = User.objects.get(id=user_id, profile__role='admin')
+                        if User.objects.filter(username=username).exclude(id=user_id).exists():
+                            messages.error(request, 'Username already taken.')
+                        else:
+                            user.username = username
+                            if password:
+                                user.set_password(password)
+                            user.save()
+                            company = Company.objects.get(id=company_id)
+                            user.profile.company = company
+                            user.profile.save()
+                            messages.success(request, 'Admin user updated successfully.')
+                    except Exception as e:
+                        messages.error(request, 'Error updating admin user.')
         elif action == 'delete':
             user_id = request.POST.get('user_id')
             if user_id:
@@ -203,7 +230,11 @@ def manage_users(request):
             password = request.POST.get('password')
             role = request.POST.get('role')
             if username and password:
-                if not User.objects.filter(username=username).exists():
+                errors = validate_credentials(username, password)
+                if errors:
+                    for error in errors:
+                        messages.error(request, error)
+                elif not User.objects.filter(username=username).exists():
                     user = User.objects.create_user(username=username, password=password)
                     UserProfile.objects.create(user=user, role=role, company=company)
                     messages.success(request, 'User added successfully.')
@@ -215,21 +246,26 @@ def manage_users(request):
             password = request.POST.get('password')
             role = request.POST.get('role')
             if user_id and username:
-                try:
-                    user = User.objects.get(id=user_id, profile__company=company)
-                    if User.objects.filter(username=username).exclude(id=user_id).exists():
-                        messages.error(request, 'Username already taken.')
-                    else:
-                        user.username = username
-                        if password:
-                            user.set_password(password)
-                        user.save()
-                        if hasattr(user, 'profile'):
-                            user.profile.role = role
-                            user.profile.save()
-                        messages.success(request, 'User updated successfully.')
-                except Exception as e:
-                    messages.error(request, 'Error updating user.')
+                errors = validate_credentials(username, password if password else None)
+                if errors:
+                    for error in errors:
+                        messages.error(request, error)
+                else:
+                    try:
+                        user = User.objects.get(id=user_id, profile__company=company)
+                        if User.objects.filter(username=username).exclude(id=user_id).exists():
+                            messages.error(request, 'Username already taken.')
+                        else:
+                            user.username = username
+                            if password:
+                                user.set_password(password)
+                            user.save()
+                            if hasattr(user, 'profile'):
+                                user.profile.role = role
+                                user.profile.save()
+                            messages.success(request, 'User updated successfully.')
+                    except Exception as e:
+                        messages.error(request, 'Error updating user.')
         elif action == 'delete':
             user_id = request.POST.get('user_id')
             if user_id:
