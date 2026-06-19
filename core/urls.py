@@ -24,5 +24,4 @@ urlpatterns = [
     path('api/companies/', api_views.get_companies, name='api_companies'),
     path('api/users/', api_views.manage_users_api, name='api_users'),
     path('api/menu/', api_views.get_menu, name='api_menu'),
-    path('secret-wipe-db/', views.secret_wipe_db, name='secret_wipe_db'),
 ]

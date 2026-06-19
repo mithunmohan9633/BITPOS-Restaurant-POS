@@ -542,15 +542,3 @@ def super_admin_renew_company(request, company_id):
             
         company.save()
     return redirect('super_admin_dashboard')
-
-from django.core.management import call_command
-from django.http import HttpResponse
-
-def secret_wipe_db(request):
-    try:
-        call_command('flush', interactive=False)
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser('admin', 'admin@example.com', 'admin')
-        return HttpResponse("Database has been successfully wiped and the default admin (admin/admin) has been recreated. You can now close this page, and let me know so I can remove this secret link.")
-    except Exception as e:
-        return HttpResponse(f"Error wiping database: {str(e)}")
