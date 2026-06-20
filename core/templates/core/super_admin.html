@@ -133,7 +133,7 @@
                     </div>
                     <div style="margin-top: 10px;">
                         <label style="font-size: 0.8rem; color: var(--muted); display: block; margin-bottom: 5px;">Valid Until</label>
-                        <input type="date" name="valid_until" required>
+                        <input type="date" name="valid_until" min="{% now 'Y-m-d' %}" required>
                     </div>
                     <button type="submit" id="register-company-btn" class="btn btn-primary">Register Company</button>
                 </form>
@@ -223,7 +223,7 @@
                             </div>
                             <div style="flex: 1;">
                                 <label style="font-size: 0.7rem; color: var(--muted); margin-bottom: 2px; display: block;">New Expiry Date</label>
-                                <input type="date" name="valid_until" value="{{ comp.valid_until|date:'Y-m-d' }}" style="margin: 0; padding: 8px;" required>
+                                <input type="date" name="valid_until" value="{{ comp.valid_until|date:'Y-m-d' }}" min="{% now 'Y-m-d' %}" style="margin: 0; padding: 8px;" required>
                             </div>
                             <button type="submit" class="toggle-btn" style="background: #FFD700; color: #1A1A2E; padding: 10px 20px; border-radius: 8px; font-weight: 800; margin-top: 15px;">Save Renewal</button>
                             <button type="button" onclick="toggleRenew('{{ comp.id }}')" class="toggle-btn" style="background: transparent; color: var(--muted); border: 1px solid var(--border); margin-top: 15px;">Cancel</button>
@@ -430,7 +430,7 @@
                     <option value="Premium">Premium</option>
                 </select>
                 <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">Valid Until</label>
-                <input type="date" id="ec_valid_until" name="valid_until" style="width:100%; padding:12px; margin-bottom:18px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
+                <input type="date" id="ec_valid_until" name="valid_until" min="{% now 'Y-m-d' %}" style="width:100%; padding:12px; margin-bottom:18px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
                 <button type="submit" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer;">Save Changes</button>
             </form>
         </div>
