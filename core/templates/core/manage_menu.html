@@ -102,9 +102,15 @@
                 {% for item in cat.items.all %}
                 <div class="menu-item" style="align-items:center;">
                     <span>{{ item.name }}</span>
-                    <div>
-                        <span style="font-weight:800;color:var(--primary);margin-right:15px;">&#8377;{{ item.price }}</span>
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-weight:800;color:var(--primary);margin-right:5px;">&#8377;{{ item.price }}</span>
                         <button onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ cat.id }}')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Edit</button>
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_item">
+                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <button type="submit" style="background:#E94560;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Delete</button>
+                        </form>
                     </div>
                 </div>
                 {% empty %}

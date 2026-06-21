@@ -205,6 +205,17 @@
             updateCartUI();
         }
 
+        function setCartQty(id, qty) {
+            let parsedQty = parseInt(qty);
+            if (isNaN(parsedQty)) return;
+            if (parsedQty <= 0) {
+                deleteFromCart(id);
+            } else if (cart[id]) {
+                cart[id].qty = parsedQty;
+                updateCartUI();
+            }
+        }
+
         function getTotal() {
             let total = 0;
             for (let id in cart) { total += cart[id].price * cart[id].qty; }
@@ -229,7 +240,7 @@
                 div.innerHTML = '<div style="display:flex; align-items:center;">' +
                     '<div style="display:flex; align-items:center; background:white; border:2px solid var(--border); border-radius:8px; margin-right:15px; overflow:hidden;">' +
                     '<button onclick="removeFromCart(\'' + id + '\')" style="border:none; background:transparent; padding:5px 12px; cursor:pointer; font-weight:900; font-size:1.1rem; color:var(--primary); transition:0.2s;">-</button>' +
-                    '<span class="cart-item-qty" style="margin:0; background:transparent; padding:0 2px; min-width:20px; text-align:center;">' + item.qty + '</span>' +
+                    '<input type="number" class="cart-item-qty" value="' + item.qty + '" min="1" onchange="setCartQty(\'' + id + '\', this.value)" style="margin:0; background:transparent; padding:2px; width:40px; text-align:center; border:none; outline:none; font-family:\'Outfit\',sans-serif; font-weight:800; color:var(--text-color); -moz-appearance: textfield;">' +
                     '<button onclick="addToCart(\'' + id + '\', \'' + item.name.replace(/'/g, "\\'") + '\', ' + item.price + ')" style="border:none; background:transparent; padding:5px 12px; cursor:pointer; font-weight:900; font-size:1.1rem; color:var(--primary); transition:0.2s;">+</button>' +
                     '</div>' +
                     '<div class="cart-item-info">' +

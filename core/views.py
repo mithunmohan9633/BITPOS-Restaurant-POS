@@ -172,6 +172,9 @@ def super_admin_create_admin(request):
                         user = User.objects.get(id=user_id, profile__role='admin')
                         if User.objects.filter(username=username).exclude(id=user_id).exists():
                             messages.error(request, 'Username already taken.')
+                        elif UserProfile.objects.filter(company_id=company_id, role='admin').exclude(user_id=user_id).exists():
+                            existing_admin = UserProfile.objects.get(company_id=company_id, role='admin').user.username
+                            messages.error(request, f"Company already has an admin '{existing_admin}'.")
                         else:
                             user.username = username
                             if password:
@@ -325,6 +328,15 @@ def manage_menu(request):
                         messages.success(request, "Product updated successfully.")
                     except Exception as e:
                         pass
+        elif action == 'delete_item':
+            item_id = request.POST.get('item_id')
+            if item_id:
+                try:
+                    item = MenuItem.objects.get(id=item_id, company=company)
+                    item.delete()
+                    messages.success(request, "Product deleted successfully.")
+                except Exception as e:
+                    messages.error(request, "Error deleting product.")
         return HttpResponseRedirect(reverse('manage_menu'))
     categories = Category.objects.filter(company=company).prefetch_related('items')
     return render(request, 'core/manage_menu.html', {'categories': categories})
