@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Manage Menu | BITPOS</title>
+    <title>Manage Tables | BITPOS</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
         :root { --bg: #1A1A2E; --card: #16213E; --primary: #D38C44; --accent: #0F3460; --text: #E8E8E8; --muted: #8892B0; --border: #233554; }
@@ -24,9 +24,8 @@
         .btn:hover { opacity: 0.9; }
         .btn-primary { background: var(--primary); color: white; }
         .btn-accent { background: var(--accent); color: white; }
-        .cat-item { font-weight: 800; font-size: 1.1rem; color: var(--primary); margin-top: 15px; }
-        .menu-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
-        .menu-item:last-child { border-bottom: none; }
+        .table-item { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); align-items: center; }
+        .table-item:last-child { border-bottom: none; }
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); }
         .modal-content { background-color: var(--card); margin: 10% auto; padding: 25px; border: 1px solid var(--border); border-radius: 16px; width: 400px; max-width: 90%; }
         .close-btn { color: var(--muted); float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
@@ -70,55 +69,38 @@
     <div class="container">
         <div class="column">
             <div class="card">
-                <h2>Create Category</h2>
+                <h2>Add Table</h2>
                 <form method="POST">
                     {% csrf_token %}
-                    <input type="hidden" name="action" value="add_category">
-                    <input type="text" name="name" placeholder="Category Name (e.g. Hot Drinks)" required>
-                    <button type="submit" class="btn btn-accent">Add Category</button>
-                </form>
-            </div>
-            <div class="card">
-                <h2>Create Menu Item</h2>
-                <form method="POST">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="add_item">
-                    <select name="category" required>
-                        <option value="">-- Select Category --</option>
-                        {% for cat in categories %}
-                        <option value="{{ cat.id }}">{{ cat.name }}</option>
-                        {% endfor %}
-                    </select>
-                    <input type="text" name="name" placeholder="Item Name (e.g. Espresso)" required>
-                    <input type="number" step="0.01" name="price" placeholder="Price (&#8377;)" required>
-                    <button type="submit" class="btn btn-primary">Add Menu Item</button>
+                    <input type="hidden" name="action" value="add_table">
+                    <input type="text" name="table_number" placeholder="Table Number/Name (e.g. T1, Balcony-1)" required>
+                    <input type="number" name="seating_capacity" placeholder="Seating Capacity (e.g. 4)" required min="1">
+                    <button type="submit" class="btn btn-primary">Add Table</button>
                 </form>
             </div>
         </div>
         <div class="column">
             <div class="card">
-                <h2>Current Menu</h2>
-                {% for cat in categories %}
-                <div class="cat-item">{{ cat.name }}</div>
-                {% for item in cat.items.all %}
-                <div class="menu-item" style="align-items:center;">
-                    <span>{{ item.name }}</span>
+                <h2>Current Tables</h2>
+                {% for table in tables %}
+                <div class="table-item">
+                    <div>
+                        <span style="font-weight: 800; color: var(--text);">Table {{ table.table_number }}</span>
+                        <br>
+                        <span style="font-size: 0.85rem; color: var(--muted);">Capacity: {{ table.seating_capacity }}</span>
+                    </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="font-weight:800;color:var(--primary);margin-right:5px;">&#8377;{{ item.price }}</span>
-                        <button onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ cat.id }}')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Edit</button>
-                        <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
+                        <button onclick="openEditModal('{{ table.id }}', '{{ table.table_number|escapejs }}', '{{ table.seating_capacity }}')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Edit</button>
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this table?');">
                             {% csrf_token %}
-                            <input type="hidden" name="action" value="delete_item">
-                            <input type="hidden" name="item_id" value="{{ item.id }}">
+                            <input type="hidden" name="action" value="delete_table">
+                            <input type="hidden" name="table_id" value="{{ table.id }}">
                             <button type="submit" style="background:#E94560;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Delete</button>
                         </form>
                     </div>
                 </div>
                 {% empty %}
-                <div class="menu-item" style="color:var(--muted)">No items yet</div>
-                {% endfor %}
-                {% empty %}
-                <div style="text-align:center; padding:30px; color:var(--muted)">No categories yet</div>
+                <div style="text-align:center; padding:30px; color:var(--muted)">No tables yet</div>
                 {% endfor %}
             </div>
         </div>
@@ -127,35 +109,27 @@
     <div id="editModal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeEditModal()">&times;</span>
-            <h2 style="color:var(--primary);margin-bottom:20px;border-bottom:2px dashed var(--border);padding-bottom:12px;">Edit Menu Item</h2>
+            <h2 style="color:var(--primary);margin-bottom:20px;border-bottom:2px dashed var(--border);padding-bottom:12px;">Edit Table</h2>
             <form method="POST">
                 {% csrf_token %}
-                <input type="hidden" name="action" value="edit_item">
-                <input type="hidden" name="item_id" id="edit_item_id">
+                <input type="hidden" name="action" value="edit_table">
+                <input type="hidden" name="table_id" id="edit_table_id">
                 
-                <label style="color:var(--muted);font-size:0.9rem;">Category</label>
-                <select name="category" id="edit_category" required>
-                    {% for cat in categories %}
-                    <option value="{{ cat.id }}">{{ cat.name }}</option>
-                    {% endfor %}
-                </select>
+                <label style="color:var(--muted);font-size:0.9rem;">Table Number/Name</label>
+                <input type="text" name="table_number" id="edit_table_number" required>
                 
-                <label style="color:var(--muted);font-size:0.9rem;">Item Name</label>
-                <input type="text" name="name" id="edit_name" required>
-                
-                <label style="color:var(--muted);font-size:0.9rem;">Price (&#8377;)</label>
-                <input type="number" step="0.01" name="price" id="edit_price" required>
+                <label style="color:var(--muted);font-size:0.9rem;">Seating Capacity</label>
+                <input type="number" name="seating_capacity" id="edit_seating_capacity" required min="1">
                 
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </form>
         </div>
     </div>
     <script>
-        function openEditModal(id, name, price, categoryId) {
-            document.getElementById('edit_item_id').value = id;
-            document.getElementById('edit_name').value = name;
-            document.getElementById('edit_price').value = price;
-            document.getElementById('edit_category').value = categoryId;
+        function openEditModal(id, tableNumber, seatingCapacity) {
+            document.getElementById('edit_table_id').value = id;
+            document.getElementById('edit_table_number').value = tableNumber;
+            document.getElementById('edit_seating_capacity').value = seatingCapacity;
             document.getElementById('editModal').style.display = 'block';
         }
         function closeEditModal() {

@@ -45,6 +45,9 @@ def login_view(request):
     return render(request, 'core/login.html')
 
 
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
 def logout_view(request):
     logout(request)
     return HttpResponseRedirect(reverse('login_view'))
@@ -217,9 +220,14 @@ def pos_dashboard(request):
     if request.user.profile.role == 'admin':
         return HttpResponseRedirect(reverse('sales_dashboard'))
     company = request.user.profile.company
+    from .models import Table
+    tables = Table.objects.filter(company=company).order_by('table_number')
     categories = Category.objects.filter(company=company).prefetch_related('items')
-    return render(request, 'core/pos_dashboard.html', {'categories': categories})
-
+    return render(request, 'core/pos_dashboard.html', {
+        'categories': categories,
+        'tables': tables,
+        'company': company,
+    })
 
 @login_required(login_url='login_view')
 def manage_users(request):
@@ -362,16 +370,62 @@ def create_order(request):
         cash_amount = float(data.get('cash_amount', 0))
         upi_amount = float(data.get('upi_amount', 0))
         total = float(data.get('total', 0))
+        
+        table_id = data.get('table_id')
+        action = data.get('action', 'checkout') # 'checkout' or 'kitchen'
+        
+        from .models import Table
+        table = None
+        if table_id:
+            try:
+                table = Table.objects.get(id=table_id, company=company)
+            except Table.DoesNotExist:
+                pass
 
-        order = Order.objects.create(
-            company=company,
-            status='paid',
-            payment_method=payment_method,
-            cash_amount=cash_amount,
-            upi_amount=upi_amount,
-            total_amount=total,
-            billed_by=request.user,
-        )
+        order_number_param = data.get('order_number')
+
+        if order_number_param:
+            # Append items directly to a specific existing order (used when cashier loads an order into the panel)
+            try:
+                order = Order.objects.get(order_number=order_number_param, company=company)
+                order.total_amount = float(order.total_amount) + total
+                order.status = 'pending'  # Re-open invoiced orders when items are added
+                order.save()
+            except Order.DoesNotExist:
+                return JsonResponse({'error': 'Order not found'}, status=404)
+        elif action == 'kitchen' and table:
+            # Look for an active order (pending or invoiced)
+            order = Order.objects.filter(company=company, table=table, status__in=['pending', 'invoiced']).first()
+            if order:
+                # Append to existing
+                order.total_amount = float(order.total_amount) + total
+                # If they add new items to an invoiced order, it becomes pending again
+                order.status = 'pending'
+                order.save()
+            else:
+                # Create new
+                order = Order.objects.create(
+                    company=company,
+                    status='pending',
+                    payment_method=payment_method,
+                    cash_amount=cash_amount,
+                    upi_amount=upi_amount,
+                    total_amount=total,
+                    billed_by=request.user,
+                    table=table
+                )
+        else:
+            status = 'paid' if action == 'checkout' else 'pending'
+            order = Order.objects.create(
+                company=company,
+                status=status,
+                payment_method=payment_method,
+                cash_amount=cash_amount,
+                upi_amount=upi_amount,
+                total_amount=total,
+                billed_by=request.user,
+                table=table
+            )
 
         for item in items:
             menu_item = MenuItem.objects.get(id=item['id'])
@@ -381,8 +435,84 @@ def create_order(request):
                 item_name=menu_item.name,
                 quantity=item['qty'],
                 price=menu_item.price,
+                is_printed=False
             )
 
+        return JsonResponse({'success': True, 'order_number': order.order_number})
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@login_required(login_url='login_view')
+def get_table_orders(request, table_id):
+    if request.method == 'GET':
+        company = request.user.profile.company
+        orders = Order.objects.filter(company=company, table_id=table_id, status='pending')
+        orders_data = []
+        for o in orders:
+            items_data = []
+            for item in o.items.all():
+                items_data.append({
+                    'id': item.menu_item.id,
+                    'name': item.item_name,
+                    'qty': item.quantity,
+                    'price': float(item.price),
+                    'total': float(item.quantity * item.price)
+                })
+            orders_data.append({
+                'order_number': o.order_number,
+                'total_amount': float(o.total_amount),
+                'created_at': o.created_at.strftime('%Y-%m-%d %I:%M %p'),
+                'items': items_data
+            })
+        return JsonResponse({'success': True, 'orders': orders_data})
+    return JsonResponse({'error': 'GET only'}, status=405)
+
+
+@login_required(login_url='login_view')
+def get_active_orders(request):
+    if request.method == 'GET':
+        company = request.user.profile.company
+        orders = Order.objects.filter(company=company, status='pending').order_by('-created_at')
+        orders_data = []
+        for o in orders:
+            items_data = []
+            for item in o.items.all():
+                items_data.append({
+                    'id': item.menu_item.id,
+                    'name': item.item_name,
+                    'qty': item.quantity,
+                    'price': float(item.price),
+                    'total': float(item.quantity * item.price)
+                })
+            orders_data.append({
+                'order_number': o.order_number,
+                'total_amount': float(o.total_amount),
+                'created_at': o.created_at.strftime('%Y-%m-%d %I:%M %p'),
+                'items': items_data
+            })
+        return JsonResponse({'success': True, 'orders': orders_data})
+    return JsonResponse({'error': 'GET only'}, status=405)
+
+
+@csrf_exempt
+@login_required(login_url='login_view')
+def pay_order(request, order_number):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        company = request.user.profile.company
+        
+        try:
+            order = Order.objects.get(order_number=order_number, company=company, status='pending')
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found or already paid'}, status=404)
+            
+        order.payment_method = data.get('payment_method', 'cash')
+        order.cash_amount = float(data.get('cash_amount', 0))
+        order.upi_amount = float(data.get('upi_amount', 0))
+        order.status = 'paid'
+        order.billed_by = request.user
+        order.save()
+        
         return JsonResponse({'success': True, 'order_number': order.order_number})
     return JsonResponse({'error': 'POST only'}, status=405)
 
@@ -554,3 +684,95 @@ def super_admin_renew_company(request, company_id):
             
         company.save()
     return redirect('super_admin_dashboard')
+
+
+@login_required(login_url='login_view')
+def manage_tables(request):
+    if not hasattr(request.user, 'profile') or request.user.profile.role != 'admin':
+        return HttpResponseForbidden("Access Denied: Only Store Admins can manage tables.")
+    company = request.user.profile.company
+    from .models import Table
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_table':
+            table_number = request.POST.get('table_number')
+            seating_capacity = request.POST.get('seating_capacity')
+            if table_number and seating_capacity:
+                if Table.objects.filter(company=company, table_number__iexact=table_number).exists():
+                    messages.error(request, f"A table with number '{table_number}' already exists.")
+                else:
+                    Table.objects.create(table_number=table_number, seating_capacity=seating_capacity, company=company)
+                    messages.success(request, "Table added successfully.")
+        elif action == 'edit_table':
+            table_id = request.POST.get('table_id')
+            table_number = request.POST.get('table_number')
+            seating_capacity = request.POST.get('seating_capacity')
+            if table_id and table_number and seating_capacity:
+                if Table.objects.filter(company=company, table_number__iexact=table_number).exclude(id=table_id).exists():
+                    messages.error(request, f"A table with number '{table_number}' already exists.")
+                else:
+                    try:
+                        table = Table.objects.get(id=table_id, company=company)
+                        table.table_number = table_number
+                        table.seating_capacity = seating_capacity
+                        table.save()
+                        messages.success(request, "Table updated successfully.")
+                    except Exception as e:
+                        pass
+        elif action == 'delete_table':
+            table_id = request.POST.get('table_id')
+            if table_id:
+                try:
+                    table = Table.objects.get(id=table_id, company=company)
+                    table.delete()
+                    messages.success(request, "Table deleted successfully.")
+                except Exception as e:
+                    messages.error(request, "Error deleting table.")
+        return HttpResponseRedirect(reverse('manage_tables'))
+    tables = Table.objects.filter(company=company).order_by('table_number')
+    return render(request, 'core/manage_tables.html', {'tables': tables})
+
+
+@login_required(login_url='login_view')
+def kot_view(request, order_number):
+    company = request.user.profile.company
+    order = Order.objects.get(order_number=order_number, company=company)
+    items = OrderItem.objects.filter(order=order)
+    
+    new_only = request.GET.get('new_only') == '1'
+    if new_only:
+        items = items.filter(is_printed=False)
+    
+    category_filter = request.GET.get('category')
+    if category_filter:
+        items = items.filter(menu_item__category__name=category_filter)
+    
+    # Group items by category
+    category_items = {}
+    items_to_mark = []
+    for item in items:
+        cat_name = item.menu_item.category.name
+        if cat_name not in category_items:
+            category_items[cat_name] = []
+        category_items[cat_name].append(item)
+        items_to_mark.append(item.id)
+        
+    # Mark items as printed if this is a new KOT request
+    if new_only and items_to_mark:
+        OrderItem.objects.filter(id__in=items_to_mark).update(is_printed=True)
+        
+    return render(request, 'core/kot.html', {'order': order, 'category_items': category_items})
+
+@csrf_exempt
+@login_required(login_url='login_view')
+def invoice_order(request, order_number):
+    if request.method == 'POST':
+        company = request.user.profile.company
+        try:
+            order = Order.objects.get(order_number=order_number, company=company, status='pending')
+            order.status = 'invoiced'
+            order.save()
+            return JsonResponse({'success': True})
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found or already invoiced'}, status=404)
+    return JsonResponse({'error': 'POST only'}, status=405)

@@ -10,7 +10,7 @@ class Company(models.Model):
     name = models.CharField(max_length=200)
     address = models.TextField(blank=True)
     is_active = models.BooleanField(default=True)
-    POS_CHOICES = (('restaurant', 'Restaurant'), ('retail', 'Retail'))
+    POS_CHOICES = (('restaurant', 'Restaurant POS'), ('cafe', 'Cafe POS'))
     pos_type = models.CharField(max_length=20, choices=POS_CHOICES, default='restaurant')
     created_at = models.DateTimeField(auto_now_add=True)
     def __str__(self):
@@ -43,6 +43,7 @@ class Table(models.Model):
 class Order(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
+        ('invoiced', 'Invoiced'),
         ('paid', 'Paid'),
         ('cancelled', 'Cancelled'),
     )
@@ -79,6 +80,7 @@ class OrderItem(models.Model):
     quantity = models.IntegerField(default=1)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     special_instructions = models.TextField(blank=True, null=True)
+    is_printed = models.BooleanField(default=False)
 
     def save(self, *args, **kwargs):
         if not self.item_name and self.menu_item:
@@ -97,7 +99,7 @@ class UserProfile(models.Model):
     ROLE_CHOICES = (
         ('admin', 'Store Admin'),
         ('cashier_restaurant', 'Restaurant Cashier'),
-        ('cashier_retail', 'Retail Cashier'),
+        ('cashier_cafe', 'Cafe Cashier'),
     )
     role = models.CharField(max_length=30, choices=ROLE_CHOICES, default='cashier_restaurant')
 

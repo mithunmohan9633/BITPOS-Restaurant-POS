@@ -58,7 +58,7 @@
 
         .type-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 800; }
         .type-restaurant { background: rgba(211,140,68,0.2); color: #D38C44; }
-        .type-retail { background: rgba(78,203,113,0.2); color: #4ECB71; }
+        .type-cafe { background: rgba(78,150,203,0.2); color: #4E9BCB; }
     </style>
 </head>
 <body>
@@ -123,7 +123,7 @@
                     <div style="display: flex; gap: 10px;">
                         <select name="pos_type" style="flex: 1;">
                             <option value="restaurant">Restaurant POS</option>
-                            <option value="retail">Retail POS</option>
+                            <option value="cafe">Cafe POS</option>
                         </select>
                         <select name="plan_name" style="flex: 1;">
                             <option value="Basic">Basic Plan</option>
@@ -172,7 +172,7 @@
                 <tr>
                     <td style="font-weight: 800">{{ comp.name }}</td>
                     <td>
-                        <span class="type-badge {% if comp.pos_type == 'restaurant' %}type-restaurant{% else %}type-retail{% endif %}">
+                        <span class="type-badge {% if comp.pos_type == 'restaurant' %}type-restaurant{% else %}type-cafe{% endif %}">
                             {{ comp.get_pos_type_display }}
                         </span>
                     </td>
@@ -421,7 +421,7 @@
                 <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">POS Type</label>
                 <select id="ec_pos_type" name="pos_type" style="width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">
                     <option value="restaurant">Restaurant POS</option>
-                    <option value="retail">Retail POS</option>
+                    <option value="cafe">Cafe POS</option>
                 </select>
                 <label style="color:var(--muted); font-size:0.85rem; display:block; margin-bottom:3px;">Plan</label>
                 <select id="ec_plan" name="plan_name" style="width:100%; padding:12px; margin-bottom:12px; border-radius:8px; border:2px solid var(--border); background:var(--bg); color:var(--text);">

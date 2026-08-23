@@ -45,6 +45,33 @@
         .badge-cash { background: rgba(78,203,113,0.15); color: var(--success); }
         .badge-upi { background: rgba(99,102,241,0.15); color: var(--purple); }
         .badge-split { background: rgba(211,140,68,0.15); color: var(--primary); }
+        .badge-pending { background: rgba(233,69,96,0.15); color: var(--danger); }
+        
+        /* Payment Modal Styles */
+        .payment-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26,26,46,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s; }
+        .payment-overlay.active { opacity: 1; visibility: visible; }
+        .payment-modal { background: var(--bg); padding: 40px; border-radius: 20px; width: 450px; border: 2px solid var(--border); }
+        .payment-label { color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 1px; font-size: 0.85rem; margin-top: 10px; }
+        .payment-amount { font-size: 2.5rem; font-weight: 800; color: var(--primary); margin-bottom: 20px; }
+        .payment-methods { display: flex; gap: 15px; margin-bottom: 20px; }
+        .payment-method { flex: 1; background: var(--card); border: 2px solid var(--border); border-radius: 12px; padding: 20px; text-align: center; cursor: pointer; transition: 0.2s; position: relative; }
+        .payment-method:hover { border-color: var(--primary); }
+        .payment-method.selected { border-color: var(--success); background: rgba(78,203,113,0.1); }
+        .method-icon { font-size: 2rem; margin-bottom: 10px; }
+        .method-name { font-weight: 800; font-size: 1.1rem; }
+        .method-check { position: absolute; top: 10px; right: 10px; color: var(--success); font-weight: 800; }
+        .split-section { background: var(--card); border-radius: 12px; padding: 20px; margin-bottom: 20px; display: none; }
+        .split-section.active { display: block; }
+        .split-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .split-label { font-weight: 800; font-size: 1.1rem; display: flex; align-items: center; gap: 10px; }
+        .split-input { background: var(--bg); border: 2px solid var(--border); color: var(--text); padding: 10px; border-radius: 8px; font-family: 'Outfit', sans-serif; font-size: 1.1rem; font-weight: 800; width: 120px; text-align: right; }
+        .balance-row { display: flex; justify-content: space-between; align-items: center; font-weight: 800; font-size: 1.1rem; margin-top: 15px; padding-top: 15px; border-top: 1px dashed var(--border); }
+        .balance-ok { color: var(--success); }
+        .balance-error { color: var(--danger); }
+        .confirm-payment-btn { width: 100%; padding: 15px; background: var(--success); color: white; border: none; border-radius: 12px; font-size: 1.2rem; font-weight: 800; cursor: pointer; transition: 0.2s; }
+        .confirm-payment-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .cancel-payment { width: 100%; padding: 15px; background: transparent; color: var(--muted); border: none; font-size: 1rem; font-weight: 600; cursor: pointer; margin-top: 10px; }
+        .cancel-payment:hover { color: white; }
     </style>
 </head>
 <body>
@@ -54,8 +81,9 @@
             <a href="/sales/">Sales</a>
             <a href="/orders/">Orders</a>
             <a href="/menu/">Menu</a>
+            <a href="/tables/">Tables</a>
             <a href="/users/">Staff</a>
-            <a href="/logout/" onclick="return confirm('Are you sure you want to logout?');" style="color:#E94560">Logout</a>
+            <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
         </div>
     </header>
     <div class="container">
@@ -95,10 +123,22 @@
             <tr>
                 <td><a href="/orders/{{ order.order_number }}/" class="order-link">{{ order.order_number }}</a></td>
                 <td style="color:var(--muted)">{{ order.created_at|date:"d M Y, h:i A" }}</td>
-                <td style="font-weight:800; color:var(--primary)">&#8377;{{ order.total_amount }}</td>
-                <td><span class="badge {% if order.payment_method == 'cash' %}badge-cash{% elif order.payment_method == 'upi' %}badge-upi{% else %}badge-split{% endif %}">{{ order.get_payment_method_display }}</span></td>
+                <td>
+                    {% if order.status == 'pending' %}
+                        <span class="badge badge-pending">Pending</span>
+                    {% elif order.status == 'invoiced' %}
+                        <span class="badge badge-pending" style="background:rgba(211,140,68,0.15); color:var(--primary);">Invoiced</span>
+                    {% else %}
+                        <span class="badge {% if order.payment_method == 'cash' %}badge-cash{% elif order.payment_method == 'upi' %}badge-upi{% else %}badge-split{% endif %}">{{ order.get_payment_method_display }}</span>
+                    {% endif %}
+                </td>
                 <td>{{ order.billed_by.username|default:"--" }}</td>
-                <td><a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank">View Bill</a></td>
+                <td>
+                    <a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank">View Bill</a>
+                    {% if order.status == 'pending' or order.status == 'invoiced' %}
+                        <button onclick="openPayment('{{ order.order_number }}', {{ order.total_amount }})" style="margin-left:10px; padding:6px 12px; background:var(--success); color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">Pay</button>
+                    {% endif %}
+                </td>
             </tr>
             {% empty %}
             <tr><td colspan="6" style="text-align:center; padding:40px; color:var(--muted)">
@@ -107,5 +147,175 @@
             {% endfor %}
         </table>
     </div>
+
+    <!-- Payment Modal -->
+    <div class="payment-overlay" id="payment-overlay">
+        <div class="payment-modal">
+            <h2>Complete Payment</h2>
+            <div class="payment-label">Amount to Collect</div>
+            <div class="payment-amount" id="payment-amount">&#8377;0.00</div>
+
+            <div class="payment-methods">
+                <div class="payment-method" id="method-cash" onclick="toggleMethod('cash')">
+                    <div class="method-check" id="check-cash"></div>
+                    <div class="method-icon">&#128176;</div>
+                    <div class="method-name">Cash</div>
+                </div>
+                <div class="payment-method" id="method-upi" onclick="toggleMethod('upi')">
+                    <div class="method-check" id="check-upi"></div>
+                    <div class="method-icon">&#128241;</div>
+                    <div class="method-name">UPI</div>
+                </div>
+            </div>
+
+            <div class="split-section" id="split-section">
+                <div class="split-row" id="row-cash" style="display:none;">
+                    <span class="split-label">&#128176; Cash</span>
+                    <input type="number" step="0.01" min="0" class="split-input" id="input-cash" oninput="updateBalance()" placeholder="0.00">
+                </div>
+                <div class="split-row" id="row-upi" style="display:none;">
+                    <span class="split-label">&#128241; UPI</span>
+                    <input type="number" step="0.01" min="0" class="split-input" id="input-upi" oninput="updateBalance()" placeholder="0.00">
+                </div>
+                <div class="balance-row" id="balance-row">
+                    <span>Remaining</span>
+                    <span id="balance-value">&#8377;0.00</span>
+                </div>
+            </div>
+
+            <button class="confirm-payment-btn" id="confirm-payment-btn" disabled onclick="confirmPayment()">Select a Payment Method</button>
+            <button class="cancel-payment" onclick="closePayment()">Cancel</button>
+        </div>
+    </div>
+
+    <script>
+        let currentPendingOrder = null;
+        let currentPendingAmount = 0;
+        let methods = { cash: false, upi: false };
+        const RUPEE = '\u20B9';
+
+        function openPayment(orderNumber, amount) {
+            currentPendingOrder = orderNumber;
+            currentPendingAmount = amount;
+            document.getElementById('payment-amount').innerText = RUPEE + amount.toFixed(2);
+            document.getElementById('payment-overlay').classList.add('active');
+            methods = { cash: false, upi: false };
+            document.getElementById('method-cash').classList.remove('selected');
+            document.getElementById('method-upi').classList.remove('selected');
+            document.getElementById('check-cash').innerHTML = '';
+            document.getElementById('check-upi').innerHTML = '';
+            document.getElementById('row-cash').style.display = 'none';
+            document.getElementById('row-upi').style.display = 'none';
+            document.getElementById('input-cash').value = '';
+            document.getElementById('input-upi').value = '';
+            document.getElementById('split-section').classList.remove('active');
+            document.getElementById('confirm-payment-btn').disabled = true;
+            document.getElementById('confirm-payment-btn').innerText = 'Select a Payment Method';
+            updateBalance();
+        }
+
+        function closePayment() {
+            document.getElementById('payment-overlay').classList.remove('active');
+        }
+
+        function toggleMethod(method) {
+            methods[method] = !methods[method];
+            let el = document.getElementById('method-' + method);
+            let check = document.getElementById('check-' + method);
+            let row = document.getElementById('row-' + method);
+            let input = document.getElementById('input-' + method);
+
+            if (methods[method]) {
+                el.classList.add('selected');
+                check.innerHTML = '&#10003;';
+                row.style.display = 'flex';
+            } else {
+                el.classList.remove('selected');
+                check.innerHTML = '';
+                row.style.display = 'none';
+                input.value = '';
+            }
+
+            let anySelected = methods.cash || methods.upi;
+            let bothSelected = methods.cash && methods.upi;
+
+            if (anySelected) {
+                document.getElementById('split-section').classList.add('active');
+            } else {
+                document.getElementById('split-section').classList.remove('active');
+            }
+
+            if (methods.cash && !methods.upi) {
+                document.getElementById('input-cash').value = currentPendingAmount.toFixed(2);
+            }
+            if (methods.upi && !methods.cash) {
+                document.getElementById('input-upi').value = currentPendingAmount.toFixed(2);
+            }
+            if (bothSelected) {
+                document.getElementById('input-cash').value = '';
+                document.getElementById('input-upi').value = '';
+            }
+
+            updateBalance();
+        }
+
+        function updateBalance() {
+            let total = currentPendingAmount;
+            let cashVal = parseFloat(document.getElementById('input-cash').value) || 0;
+            let upiVal = parseFloat(document.getElementById('input-upi').value) || 0;
+            let paid = cashVal + upiVal;
+            let remaining = total - paid;
+
+            let balanceRow = document.getElementById('balance-row');
+            let balanceValue = document.getElementById('balance-value');
+            let confirmBtn = document.getElementById('confirm-payment-btn');
+            let anySelected = methods.cash || methods.upi;
+
+            if (Math.abs(remaining) < 0.01 && anySelected) {
+                balanceRow.className = 'balance-row balance-ok';
+                balanceValue.innerHTML = 'Balanced ✓';
+                confirmBtn.disabled = false;
+                let label = '';
+                if (methods.cash && methods.upi) label = 'Confirm Split Payment ' + RUPEE + total.toFixed(2);
+                else if (methods.cash) label = 'Confirm Cash ' + RUPEE + total.toFixed(2);
+                else label = 'Confirm UPI ' + RUPEE + total.toFixed(2);
+                confirmBtn.innerText = label;
+            } else if (remaining < 0) {
+                balanceRow.className = 'balance-row balance-error';
+                balanceValue.innerHTML = 'Over by ' + RUPEE + Math.abs(remaining).toFixed(2);
+                confirmBtn.disabled = true;
+                confirmBtn.innerText = 'Amount does not match';
+            } else {
+                balanceRow.className = 'balance-row balance-error';
+                balanceValue.innerHTML = RUPEE + remaining.toFixed(2) + ' remaining';
+                confirmBtn.disabled = true;
+                confirmBtn.innerText = anySelected ? 'Enter full amount to confirm' : 'Select a Payment Method';
+            }
+        }
+
+        function confirmPayment() {
+            let cashVal = parseFloat(document.getElementById('input-cash').value) || 0;
+            let upiVal = parseFloat(document.getElementById('input-upi').value) || 0;
+            let method = (methods.cash && methods.upi) ? 'split' : (methods.cash ? 'cash' : 'upi');
+
+            fetch('/api/pay-order/' + currentPendingOrder + '/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    payment_method: method,
+                    cash_amount: cashVal,
+                    upi_amount: upiVal
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if(data.success) {
+                    location.reload();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            });
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>KOT - {{ order.order_number }}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&display=swap" rel="stylesheet">
+    <style>
+        @page { size: auto; margin: 0mm; }
+        body { font-family: 'Outfit', sans-serif; max-width: 350px; margin: 5mm; padding: 0; color: #000; }
+        .kot-ticket { border: 2px solid #000; padding: 10px; margin-bottom: 5px; }
+        .header { text-align: center; border-bottom: 2px dashed #000; padding-bottom: 5px; margin-bottom: 10px; }
+        .header h1 { margin: 0; font-size: 1.8rem; font-weight: 800; text-transform: uppercase; }
+        .meta-info { font-size: 1rem; margin: 5px 0; font-weight: 600; }
+        .meta-info div { display: flex; justify-content: space-between; margin: 3px 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th { text-align: left; padding: 5px 0; border-bottom: 2px solid #000; font-size: 0.9rem; }
+        td { padding: 8px 0; border-bottom: 1px dashed #666; font-size: 1rem; font-weight: 600; }
+        .category-name { text-align: center; font-size: 1.1rem; font-weight: 800; margin: 10px 0 5px; background: #000; color: #fff; padding: 3px; }
+        @media print { .print-btn { display: none; } }
+        .print-btn { display: block; text-align: center; margin: 15px auto 0; padding: 10px 20px; background: #000; color: white; border: none; font-weight: 800; font-size: 0.9rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    {% for category, items in category_items.items %}
+    <div class="kot-ticket">
+        <div class="header">
+            <h1>KOT</h1>
+        </div>
+        <div class="meta-info">
+            <div><span>Order No:</span><span>{{ order.order_number }}</span></div>
+            <div><span>Table No:</span><span style="font-size:1.4rem">{{ order.table.table_number|default:"N/A" }}</span></div>
+            <div><span>Date:</span><span>{{ order.created_at|date:"d/m/Y h:i A" }}</span></div>
+        </div>
+        <div class="category-name">{{ category }}</div>
+        <table>
+            <tr><th>Item</th><th style="text-align:right">Qty</th></tr>
+            {% for item in items %}
+            <tr>
+                <td>{{ item.item_name }}</td>
+                <td style="text-align:right">{{ item.quantity }}</td>
+            </tr>
+            {% endfor %}
+        </table>
+    </div>
+    {% endfor %}
+    <button class="print-btn" onclick="window.print()">Print KOT</button>
+
+    <script>
+        window.onload = function() {
+            window.focus();
+            window.print();
+            setTimeout(function() {
+                window.close();
+            }, 1000);
+        };
+    </script>
+</body>
+</html>

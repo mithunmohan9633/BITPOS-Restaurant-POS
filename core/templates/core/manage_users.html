@@ -6,140 +6,345 @@
     <title>Manage Staff | BITPOS</title>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #1A1A2E; --card: #16213E; --primary: #D38C44; --accent: #0F3460; --text: #E8E8E8; --muted: #8892B0; --border: #233554; }
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --bg: #1A1A2E; --card: #16213E; --primary: #D38C44;
+            --accent: #0F3460; --text: #E8E8E8; --muted: #8892B0;
+            --border: #233554; --danger: #E94560;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
-        header { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); }
-        h1 { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
-        .nav-links a { color: var(--muted); text-decoration: none; margin-left: 20px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
-        .nav-links a:hover { color: var(--primary); background: rgba(211,140,68,0.1); }
-        .container { max-width: 900px; margin: 30px auto; padding: 0 20px; display: flex; gap: 30px; align-items: flex-start; }
-        .card { background: var(--card); border-radius: 16px; padding: 30px; border: 1px solid var(--border); flex: 1; }
-        .card h2 { color: var(--primary); margin-bottom: 20px; padding-bottom: 15px; border-bottom: 2px dashed var(--border); }
-        input, select { width: 100%; padding: 14px; margin: 8px 0; border-radius: 8px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1rem; }
-        input:focus, select:focus { outline: none; border-color: var(--primary); }
+
+        /* Header */
+        header {
+            background: var(--card); padding: 14px 28px;
+            display: flex; justify-content: space-between; align-items: center;
+            border-bottom: 2px solid var(--border); flex-wrap: wrap; gap: 12px;
+            position: sticky; top: 0; z-index: 50;
+        }
+        .brand { font-weight: 800; font-size: 1.4rem; color: var(--primary); letter-spacing: 1px; text-decoration: none; }
+        .nav-links { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+        .nav-links a {
+            color: var(--muted); text-decoration: none; font-weight: 600;
+            padding: 7px 14px; border-radius: 8px; transition: 0.2s;
+            font-size: 0.9rem; white-space: nowrap;
+        }
+        .nav-links a:hover { color: var(--primary); background: rgba(211,140,68,0.12); }
+        .nav-links .active { color: var(--primary); }
+        .nav-links .logout-link { color: var(--danger); border: 1.5px solid rgba(233,69,96,0.3); }
+        .nav-links .logout-link:hover { background: rgba(233,69,96,0.1); }
+
+        /* Page wrapper */
+        .page { max-width: 980px; margin: 0 auto; padding: 32px 20px 64px; }
+        .page-heading { font-size: 1.5rem; font-weight: 800; color: var(--text); margin-bottom: 24px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .page-heading span { color: var(--muted); font-weight: 400; font-size: 1rem; }
+
+        /* Two-column grid */
+        .grid { display: grid; grid-template-columns: 320px 1fr; gap: 24px; align-items: flex-start; }
+
+        /* Cards */
+        .card { background: var(--card); border-radius: 18px; padding: 28px; border: 1px solid var(--border); }
+        .card-title {
+            color: var(--primary); font-size: 1rem; font-weight: 800;
+            margin-bottom: 22px; padding-bottom: 14px;
+            border-bottom: 2px dashed var(--border);
+        }
+
+        /* Form */
+        .form-group { margin-bottom: 16px; }
+        .form-label { display: block; font-size: 0.78rem; color: var(--muted); font-weight: 700; margin-bottom: 7px; text-transform: uppercase; letter-spacing: 0.6px; }
+        input, select {
+            width: 100%; padding: 13px 14px; border-radius: 9px;
+            border: 2px solid var(--border); background: rgba(255,255,255,0.04);
+            color: var(--text); font-family: 'Outfit', sans-serif; font-size: 0.95rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        input:focus, select:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(211,140,68,0.15); }
         input::placeholder { color: var(--muted); }
-        button { width: 100%; padding: 14px; margin-top: 15px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; }
-        button:hover { opacity: 0.9; }
-        .user-row { display: flex; justify-content: space-between; padding: 15px; border-bottom: 1px solid var(--border); align-items: center; }
-        .user-row:last-child { border-bottom: none; }
-        @media (max-width: 768px) {
-            header { flex-direction: column; text-align: center; gap: 15px; padding: 15px; }
-            .nav-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-            .nav-links a { margin-left: 0; padding: 8px 12px; font-size: 0.9rem; }
-            .container { flex-direction: column; padding: 0 15px; margin: 20px auto; }
-            .card { width: 100%; }
-            .user-row { flex-direction: column; align-items: flex-start; gap: 15px; }
-            .user-row > div { width: 100%; justify-content: space-between; }
+        select option { background: var(--card); }
+
+        /* Buttons */
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+            padding: 12px 20px; border: none; border-radius: 9px;
+            font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.9rem;
+            cursor: pointer; transition: all 0.2s; white-space: nowrap;
+        }
+        .btn-full { width: 100%; }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(211,140,68,0.3); }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-accent:hover { opacity: 0.88; }
+        .btn-danger { background: var(--danger); color: white; }
+        .btn-danger:hover { opacity: 0.88; }
+        .btn-ghost { background: rgba(255,255,255,0.06); color: var(--text); border: 1.5px solid var(--border); }
+        .btn-ghost:hover { background: rgba(255,255,255,0.1); }
+        .btn-sm { padding: 8px 15px; font-size: 0.83rem; }
+
+        /* User list */
+        .user-list { display: flex; flex-direction: column; }
+        .user-row {
+            display: flex; align-items: center; justify-content: space-between;
+            gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+        }
+        .user-row:last-child { border-bottom: none; padding-bottom: 0; }
+        .user-info { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 130px; }
+        .user-name { font-weight: 800; font-size: 1rem; color: var(--text); }
+        .user-role-badge {
+            display: inline-block; font-size: 0.75rem; font-weight: 700;
+            color: var(--primary); background: rgba(211,140,68,0.14);
+            padding: 3px 11px; border-radius: 20px;
+        }
+        .user-actions { display: flex; gap: 8px; flex-shrink: 0; }
+        .empty-state { text-align: center; padding: 36px 20px; color: var(--muted); font-size: 0.95rem; }
+        .empty-icon { font-size: 2.5rem; margin-bottom: 10px; }
+
+        /* Modal overlay */
+        .modal-overlay {
+            display: none; position: fixed; z-index: 500; inset: 0;
+            background: rgba(0,0,0,0.7); backdrop-filter: blur(5px);
+            align-items: center; justify-content: center; padding: 16px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-box {
+            background: var(--card); border-radius: 20px; padding: 28px;
+            border: 1px solid var(--border); width: 100%;
+            max-width: min(440px, 100%); max-height: 90vh; overflow-y: auto;
+            animation: modalIn 0.25s ease;
+        }
+        @keyframes modalIn { from { transform: translateY(16px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; }
+        .modal-title { color: var(--primary); font-size: 1.1rem; font-weight: 800; }
+        .modal-close {
+            background: none; border: none; color: var(--muted);
+            font-size: 1.6rem; cursor: pointer; line-height: 1;
+            padding: 2px 7px; border-radius: 6px; width: auto; transition: 0.2s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,0.08); color: var(--text); }
+        .modal-footer { display: flex; gap: 10px; margin-top: 20px; }
+
+        /* Delete confirm modal */
+        .confirm-inner { text-align: center; padding: 8px 0; }
+        .confirm-icon { font-size: 3rem; margin-bottom: 12px; }
+        .confirm-title { font-size: 1.2rem; font-weight: 800; color: var(--text); margin-bottom: 8px; }
+        .confirm-msg { color: var(--muted); font-size: 0.9rem; margin-bottom: 26px; line-height: 1.6; }
+        .confirm-btns { display: flex; gap: 12px; }
+        .btn-cancel-del { flex: 1; padding: 13px; background: rgba(255,255,255,0.06); color: var(--text); border: 1.5px solid var(--border); border-radius: 10px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.93rem; cursor: pointer; transition: 0.2s; }
+        .btn-cancel-del:hover { background: rgba(255,255,255,0.1); }
+        .btn-del { flex: 1; padding: 13px; background: var(--danger); color: white; border: none; border-radius: 10px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 0.93rem; cursor: pointer; transition: 0.2s; }
+        .btn-del:hover { opacity: 0.88; transform: translateY(-1px); }
+
+        /* Toasts */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast {
+            padding: 13px 20px; border-radius: 12px; font-weight: 600; pointer-events: all;
+            box-shadow: 0 6px 24px rgba(0,0,0,0.5); font-size: 0.92rem; max-width: 320px;
+            animation: toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+        }
+        .toast-success { background: #163d24; color: #7EEEA0; border: 1.5px solid rgba(78,203,113,0.35); }
+        .toast-error   { background: #3d161e; color: #FF8096; border: 1.5px solid rgba(233,69,96,0.35); }
+        @keyframes toastIn { from { transform: translateX(110%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+
+        /* Responsive */
+        @media (max-width: 780px) {
+            .grid { grid-template-columns: 1fr; }
+            .page { padding: 20px 14px 50px; }
+            .card { padding: 20px 16px; }
+        }
+        @media (max-width: 520px) {
+            header { padding: 12px 14px; }
+            .brand { font-size: 1.2rem; }
+            .nav-links a { padding: 6px 10px; font-size: 0.82rem; }
+            .user-actions { width: 100%; }
+            .user-actions .btn { flex: 1; }
+            .page-heading { font-size: 1.25rem; }
         }
     </style>
 </head>
 <body>
     <header>
-        <h1>BITPOS</h1>
-        <div class="nav-links">
+        <a class="brand" href="/">BITPOS</a>
+        <nav class="nav-links">
             <a href="/sales/">Sales</a>
             <a href="/orders/">Orders</a>
             <a href="/menu/">Menu</a>
-            <a href="/users/">Staff</a>
-            <a href="/logout/" onclick="return confirm('Are you sure you want to logout?');" style="color:#E94560">Logout</a>
-        </div>
+            <a href="/tables/">Tables</a>
+            <a href="/users/" class="active">Staff</a>
+            <a href="/logout/" class="logout-link">Logout</a>
+        </nav>
     </header>
+
     {% if messages %}
-    <div id="toast-container" style="position: fixed; top: 30px; right: 30px; z-index: 9999;">
+    <div id="toast-container">
         {% for message in messages %}
-            <div class="toast" style="padding: 15px 25px; border-radius: 8px; margin-bottom: 10px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: slideIn 0.4s ease-out forwards, fadeOut 0.4s ease-in 4s forwards;
-                {% if message.tags == 'error' %}background-color: #E94560; color: white; border-left: 5px solid #bd2840;
-                {% else %}background-color: #4CAF50; color: white; border-left: 5px solid #388E3C;{% endif %}">
-                {{ message }}
-            </div>
+        <div class="toast {% if message.tags == 'error' %}toast-error{% else %}toast-success{% endif %}">
+            {% if message.tags == 'error' %}⚠️{% else %}✅{% endif %} {{ message }}
+        </div>
         {% endfor %}
     </div>
-    <style>
-        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
-        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
-    </style>
     {% endif %}
-    <div class="container">
-        <div class="card">
-            <h2>Create New Staff</h2>
-            <form method="POST">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="add">
-                <input type="text" name="username" placeholder="Username" required>
-                <input type="password" name="password" placeholder="Password" required>
-                <select name="role">
-                    <option value="cashier_restaurant">Restaurant Cashier</option>
-                    <option value="cashier_retail">Retail Cashier</option>
-                </select>
-                <button type="submit">Create User</button>
-            </form>
+
+    <div class="page">
+        <div class="page-heading">
+            Staff Management
+            <span>/ Cashier accounts</span>
         </div>
-        <div class="card">
-            <h2>Existing Staff</h2>
-            {% for profile in profiles %}
-            <div class="user-row" style="display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px;">
-                <span style="font-weight:800; min-width: 120px;">{{ profile.user.username }}</span>
-                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                    <span style="color:var(--primary); font-weight:600; min-width: 140px; text-align: right;">{{ profile.get_role_display }}</span>
-                    <button onclick="openEditModal('{{ profile.user.id }}', '{{ profile.user.username }}', '{{ profile.role }}')" style="background:var(--accent); color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; width:auto; font-size:0.9rem; margin:0;">Edit</button>
-                    <form method="POST" style="display:inline; margin:0;" onsubmit="return confirm('Are you sure you want to remove this user?');">
-                        {% csrf_token %}
-                        <input type="hidden" name="action" value="delete">
-                        <input type="hidden" name="user_id" value="{{ profile.user.id }}">
-                        <button type="submit" style="background:#E94560; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; width:auto; font-size:0.9rem; margin:0;">Remove</button>
-                    </form>
+
+        <div class="grid">
+
+            <!-- Create Staff -->
+            <div class="card">
+                <div class="card-title">➕ Create New Staff</div>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" placeholder="e.g. john123" autocomplete="off" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" name="password" placeholder="Min 8 characters" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Role</label>
+                        <select name="role">
+                            <option value="cashier_restaurant">🍽 Restaurant Cashier</option>
+                            <option value="cashier_cafe">☕ Cafe Cashier</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full" style="margin-top:8px;">Create User</button>
+                </form>
+            </div>
+
+            <!-- Staff List -->
+            <div class="card">
+                <div class="card-title">👥 Existing Staff</div>
+                <div class="user-list">
+                    {% for profile in profiles %}
+                    <div class="user-row">
+                        <div class="user-info">
+                            <span class="user-name">{{ profile.user.username }}</span>
+                            <span class="user-role-badge">{{ profile.get_role_display }}</span>
+                        </div>
+                        <div class="user-actions">
+                            <button onclick="openEditModal('{{ profile.user.id }}', '{{ profile.user.username }}', '{{ profile.role }}')"
+                                class="btn btn-accent btn-sm">✏️ Edit</button>
+                            <button onclick="openDeleteModal('{{ profile.user.id }}', '{{ profile.user.username }}')"
+                                class="btn btn-danger btn-sm">🗑 Remove</button>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="empty-state">
+                        <div class="empty-icon">👤</div>
+                        No staff members yet.<br>Create one using the form.
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-            {% empty %}
-            <div style="text-align:center; padding:30px; color:var(--muted)">No staff members yet</div>
-            {% endfor %}
+
         </div>
-</div>
     </div>
-    
+
     <!-- Edit Modal -->
-    <div id="editModal" style="display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; background-color:rgba(0,0,0,0.6);">
-        <div style="background-color:var(--card); margin:10% auto; padding:25px; border:1px solid var(--border); border-radius:16px; width:400px; max-width:90%;">
-            <span onclick="closeEditModal()" style="color:var(--muted); float:right; font-size:28px; font-weight:bold; cursor:pointer;">&times;</span>
-            <h2 style="color:var(--primary); margin-bottom:20px;">Edit Staff</h2>
-            <form method="POST" onsubmit="return confirm('Are you sure you want to save these changes?');">
+    <div id="editModal" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-box">
+            <div class="modal-header">
+                <span class="modal-title">✏️ Edit Staff Member</span>
+                <button class="modal-close" onclick="closeEditModal()" aria-label="Close">×</button>
+            </div>
+            <form method="POST">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="edit">
                 <input type="hidden" name="user_id" id="edit_user_id">
-                
-                <label style="color:var(--muted); font-size:0.9rem;">Username</label>
-                <input type="text" name="username" id="edit_username" required>
-                
-                <label style="color:var(--muted); font-size:0.9rem;">New Password (leave blank to keep current)</label>
-                <input type="password" name="password" placeholder="New Password">
-                
-                <label style="color:var(--muted); font-size:0.9rem;">Role</label>
-                <select name="role" id="edit_role">
-                    <option value="cashier_restaurant">Restaurant Cashier</option>
-                    <option value="cashier_retail">Retail Cashier</option>
-                </select>
-                
-                <button type="submit" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; margin-top:15px;">Save Changes</button>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" name="username" id="edit_username" autocomplete="off" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">
+                        New Password
+                        <span style="color:var(--muted); font-weight:400; text-transform:none; letter-spacing:0;">(leave blank to keep current)</span>
+                    </label>
+                    <input type="password" name="password" placeholder="New password">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Role</label>
+                    <select name="role" id="edit_role">
+                        <option value="cashier_restaurant">🍽 Restaurant Cashier</option>
+                        <option value="cashier_cafe">☕ Cafe Cashier</option>
+                    </select>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-ghost" style="flex:1;" onclick="closeEditModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary" style="flex:2;">Save Changes</button>
+                </div>
             </form>
         </div>
     </div>
+
+    <!-- Delete Confirm Modal -->
+    <div id="deleteModal" class="modal-overlay" role="dialog" aria-modal="true">
+        <div class="modal-box">
+            <div class="confirm-inner">
+                <div class="confirm-icon">🗑</div>
+                <div class="confirm-title">Remove Staff Member?</div>
+                <p class="confirm-msg" id="delete-confirm-msg">Are you sure you want to remove this user?</p>
+                <form method="POST" id="delete-form">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="delete">
+                    <input type="hidden" name="user_id" id="delete_user_id">
+                    <div class="confirm-btns">
+                        <button type="button" class="btn-cancel-del" onclick="closeDeleteModal()">Cancel</button>
+                        <button type="submit" class="btn-del">Yes, Remove</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
+        // Edit Modal
         function openEditModal(id, username, role) {
             document.getElementById('edit_user_id').value = id;
             document.getElementById('edit_username').value = username;
             document.getElementById('edit_role').value = role;
-            document.getElementById('editModal').style.display = 'block';
+            document.getElementById('editModal').classList.add('active');
+            setTimeout(() => document.getElementById('edit_username').focus(), 120);
         }
         function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
+            document.getElementById('editModal').classList.remove('active');
         }
-        window.onclick = function(event) {
-            var modal = document.getElementById('editModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
+
+        // Delete Confirm Modal
+        function openDeleteModal(id, username) {
+            document.getElementById('delete_user_id').value = id;
+            document.getElementById('delete-confirm-msg').innerText =
+                'Are you sure you want to remove "' + username + '"? This action cannot be undone.';
+            document.getElementById('deleteModal').classList.add('active');
         }
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        // Close on overlay click
+        document.getElementById('editModal').addEventListener('click', function(e) { if (e.target === this) closeEditModal(); });
+        document.getElementById('deleteModal').addEventListener('click', function(e) { if (e.target === this) closeDeleteModal(); });
+
+        // Close on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') { closeEditModal(); closeDeleteModal(); }
+        });
+
+        // Auto-dismiss toasts
+        setTimeout(() => {
+            document.querySelectorAll('.toast').forEach(t => {
+                t.style.transition = 'opacity 0.5s, transform 0.5s';
+                t.style.opacity = '0';
+                t.style.transform = 'translateX(110%)';
+                setTimeout(() => t.remove(), 500);
+            });
+        }, 4000);
     </script>
 </body>
-</html>
+</html>
