@@ -99,15 +99,25 @@ def build_kot_payload(order, printer_name: str, items: list, line_width: int = 4
     p = bytearray()
     p.extend(CMD_INIT)
     
-    # Header
+    # Check if parcel / takeaway
+    is_parcel = getattr(order, 'order_type', None) == 'parcel' or order.table is None
+    
+    # Header - Print PARCEL in Bold Double-Size at the top
     p.extend(CMD_ALIGN_CENTER)
     p.extend(CMD_BOLD_ON)
     p.extend(CMD_DOUBLE_SIZE)
-    p.extend(b"*** KOT ***\n")
+    if is_parcel:
+        p.extend(b"*** PARCEL ***\n")
+    else:
+        p.extend(b"*** KOT ***\n")
     p.extend(CMD_NORMAL_SIZE)
     
     p.extend(CMD_BOLD_ON)
     p.extend(f"[{printer_name.upper()} STATION]\n".encode('ascii', errors='ignore'))
+    if is_parcel:
+        p.extend(CMD_DOUBLE_WIDTH)
+        p.extend(b">> PARCEL ORDER <<\n")
+        p.extend(CMD_NORMAL_SIZE)
     p.extend(CMD_BOLD_OFF)
     
     if order.company and order.company.name:
@@ -124,11 +134,18 @@ def build_kot_payload(order, printer_name: str, items: list, line_width: int = 4
     date_str = datetime.now().strftime('%d/%m/%Y  %I:%M %p')
     p.extend(f"Date: {date_str}\n".encode('ascii', errors='ignore'))
     
-    table_label = f"Table {order.table.table_number}" if order.table else "Direct Sale"
-    p.extend(CMD_DOUBLE_WIDTH)
-    p.extend(f"{table_label}\n".encode('ascii', errors='ignore'))
-    p.extend(CMD_NORMAL_SIZE)
-    p.extend(CMD_BOLD_OFF)
+    if is_parcel:
+        p.extend(CMD_BOLD_ON)
+        p.extend(CMD_DOUBLE_WIDTH)
+        p.extend(b"TYPE:  PARCEL\n")
+        p.extend(CMD_NORMAL_SIZE)
+        p.extend(CMD_BOLD_OFF)
+    else:
+        table_label = f"Table {order.table.table_number}" if order.table else "Direct Sale"
+        p.extend(CMD_DOUBLE_WIDTH)
+        p.extend(f"{table_label}\n".encode('ascii', errors='ignore'))
+        p.extend(CMD_NORMAL_SIZE)
+        p.extend(CMD_BOLD_OFF)
     
     p.extend(b"=" * line_width + b"\n")
     

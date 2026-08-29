@@ -384,19 +384,26 @@
                 <button onclick="closeNewOrderModal()" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#C96459;">&times;</button>
             </div>
 
-            <!-- Table & Payment Mode Selection -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:15px;">
+            <!-- Table, Order Type & Payment Mode Selection -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
                 <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Table (Optional)</label>
-                    <select id="new-order-table-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
-                        <option value="">-- Direct Sale / Takeaway --</option>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Table</label>
+                    <select id="new-order-table-select" onchange="autoSetOrderType(this.value)" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
+                        <option value="">-- No Table (Takeaway) --</option>
                         {% for table in tables %}
-                        <option value="{{ table.id }}">Table {{ table.table_number }} (Cap: {{ table.seating_capacity }})</option>
+                        <option value="{{ table.id }}">Table {{ table.table_number }}</option>
                         {% endfor %}
                     </select>
                 </div>
                 <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Payment Mode</label>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Order Type</label>
+                    <select id="new-order-type-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
+                        <option value="parcel">📦 Parcel</option>
+                        <option value="dine_in">🍽️ Dine-in</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Payment</label>
                     <select id="new-order-payment-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
                         <option value="cash">Cash</option>
                         <option value="upi">UPI</option>
@@ -896,6 +903,13 @@
             totalEl.innerText = RUPEE + grandTotal.toFixed(2);
         }
 
+        function autoSetOrderType(tableVal) {
+            var typeSel = document.getElementById('new-order-type-select');
+            if (typeSel) {
+                typeSel.value = tableVal ? 'dine_in' : 'parcel';
+            }
+        }
+
         function submitNewOrder(action) {
             if (newOrderCart.length === 0) {
                 alert('Please add at least one item to the order.');
@@ -903,6 +917,7 @@
             }
             
             var tableId = document.getElementById('new-order-table-select').value;
+            var orderType = document.getElementById('new-order-type-select').value;
             var paymentMethod = document.getElementById('new-order-payment-select').value;
             var total = newOrderCart.reduce((acc, i) => acc + (i.price * i.qty), 0);
             var orderItems = newOrderCart.map(i => ({ id: i.id, qty: i.qty }));
@@ -918,6 +933,7 @@
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     items: orderItems,
+                    order_type: orderType,
                     payment_method: paymentMethod,
                     cash_amount: (paymentMethod === 'cash' && action === 'checkout') ? total : 0,
                     upi_amount: (paymentMethod === 'upi' && action === 'checkout') ? total : 0,

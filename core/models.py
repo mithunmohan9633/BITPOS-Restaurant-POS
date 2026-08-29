@@ -78,6 +78,7 @@ class Order(models.Model):
     cash_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     upi_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    order_type = models.CharField(max_length=20, default='dine_in')
     billed_by = models.ForeignKey('auth.User', on_delete=models.SET_NULL, null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

@@ -24,11 +24,15 @@
     {% for category, items in category_items.items %}
     <div class="kot-ticket">
         <div class="header">
-            <h1>KOT</h1>
+            {% if not order.table or order.order_type == 'parcel' %}
+                <h1 style="font-weight:900; font-size:2rem; letter-spacing:1px;">*** PARCEL ***</h1>
+            {% else %}
+                <h1 style="font-weight:900;">KOT</h1>
+            {% endif %}
         </div>
         <div class="meta-info">
             <div><span>Order No:</span><span style="font-weight:900; font-size:1.25rem;">{{ order.order_number }}</span></div>
-            <div><span>Table No:</span><span style="font-size:1.4rem">{{ order.table.table_number|default:"N/A" }}</span></div>
+            <div><span>Type / Table:</span><span style="font-size:1.2rem; font-weight:800;">{% if not order.table or order.order_type == 'parcel' %}PARCEL / TAKEAWAY{% else %}Table {{ order.table.table_number }}{% endif %}</span></div>
             <div><span>Date:</span><span>{{ order.created_at|date:"d/m/Y h:i A" }}</span></div>
         </div>
         <div class="category-name">{{ category }}</div>

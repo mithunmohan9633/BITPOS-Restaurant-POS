@@ -493,12 +493,15 @@ def create_order(request):
                 pass
 
         order_number_param = data.get('order_number')
+        order_type = data.get('order_type', 'parcel' if not table else 'dine_in')
 
         if order_number_param:
             # Append items directly to a specific existing order
             try:
                 order = Order.objects.get(order_number=order_number_param, company=company)
                 order.total_amount = float(order.total_amount) + total
+                if 'order_type' in data:
+                    order.order_type = order_type
                 if action in ['bill', 'take_bill', 'invoice']:
                     order.status = 'invoiced'
                 elif action in ['checkout', 'pay', 'paid']:
@@ -525,6 +528,7 @@ def create_order(request):
                 order = Order.objects.create(
                     company=company,
                     status='pending',
+                    order_type=order_type,
                     payment_method=payment_method,
                     cash_amount=cash_amount,
                     upi_amount=upi_amount,
@@ -548,6 +552,7 @@ def create_order(request):
             order = Order.objects.create(
                 company=company,
                 status=status,
+                order_type=order_type,
                 payment_method=payment_method,
                 cash_amount=cash_amount,
                 upi_amount=upi_amount,
