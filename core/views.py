@@ -739,8 +739,20 @@ def transfer_table(request):
 def order_history(request):
     if not hasattr(request.user, 'profile') or request.user.profile.role != 'admin':
         return HttpResponseForbidden("Access Denied.")
-    company = request.user.profile.company
-    orders = Order.objects.filter(company=company).order_by('-created_at')
+    company = getattr(request.user.profile, 'company', None)
+    if not company:
+        company = Company.objects.first()
+        if company:
+            try:
+                request.user.profile.company = company
+                request.user.profile.save()
+            except Exception:
+                pass
+
+    if company:
+        orders = Order.objects.filter(company=company).order_by('-created_at')
+    else:
+        orders = Order.objects.all().order_by('-created_at')
 
     search = request.GET.get('search', '').strip()
     status_filter = request.GET.get('status', '').strip()
@@ -761,9 +773,14 @@ def order_history(request):
     if date_to:
         orders = orders.filter(created_at__date__lte=date_to)
 
-    menu_items = MenuItem.objects.filter(company=company, is_available=True).select_related('category').order_by('category__name', 'name')
-    tables = Table.objects.filter(company=company).order_by('table_number')
-    categories = Category.objects.filter(company=company).order_by('name')
+    if company:
+        menu_items = MenuItem.objects.filter(company=company, is_available=True).select_related('category').order_by('category__name', 'name')
+        tables = Table.objects.filter(company=company).order_by('table_number')
+        categories = Category.objects.filter(company=company).order_by('name')
+    else:
+        menu_items = MenuItem.objects.filter(is_available=True).select_related('category').order_by('category__name', 'name')
+        tables = Table.objects.all().order_by('table_number')
+        categories = Category.objects.all().order_by('name')
 
     return render(request, 'core/order_history.html', {
         'orders': orders,

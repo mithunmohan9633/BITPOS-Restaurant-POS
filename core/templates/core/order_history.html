@@ -253,13 +253,13 @@
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
                         <a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank" style="margin-right:4px;">View Bill</a>
-                        <button type="button" onclick="openAddProductModal('{{ order.order_number }}', {{ order.total_amount }})" class="btn-action-add" title="Add items to this order and take bill"><span>&#43;</span> Add Product</button>
+                        <button type="button" onclick="openAddProductModal('{{ order.order_number }}', {{ order.total_amount|default:0 }})" class="btn-action-add" title="Add items to this order and take bill"><span>&#43;</span> Add Product</button>
                         {% if order.status == 'paid' %}
                             <button disabled class="btn-action-pay" title="Order already paid">Pay</button>
                             <button disabled class="btn-action-paid" title="Order already paid">Paid &#10003;</button>
                         {% else %}
-                            <button onclick="openPayment('{{ order.order_number }}', {{ order.total_amount }})" class="btn-action-pay" id="pay-btn-{{ order.order_number }}">Pay</button>
-                            <button onclick="quickMarkPaid('{{ order.order_number }}', {{ order.total_amount }}, this)" class="btn-action-paid" id="paid-btn-{{ order.order_number }}">Paid</button>
+                            <button onclick="openPayment('{{ order.order_number }}', {{ order.total_amount|default:0 }})" class="btn-action-pay" id="pay-btn-{{ order.order_number }}">Pay</button>
+                            <button onclick="quickMarkPaid('{{ order.order_number }}', {{ order.total_amount|default:0 }}, this)" class="btn-action-paid" id="paid-btn-{{ order.order_number }}">Paid</button>
                         {% endif %}
                     </div>
                 </td>
