@@ -80,11 +80,13 @@ WSGI_APPLICATION = 'restaurant_pos.wsgi.application'
 
 
 
-SUPABASE_DB_URL = 'postgresql://postgres:Mithun%4096334@db.jbxquepvovxrfsmykdjx.supabase.co:5432/postgres'
+SUPABASE_DB_URL = 'postgresql://postgres:Mithun%4096334@db.jbxquepvovxrfsmykdjx.supabase.co:5432/postgres?sslmode=require'
+
+DATABASE_URL = os.environ.get('DATABASE_URL') or SUPABASE_DB_URL
 
 DATABASES = {
-    'default': dj_database_url.config(
-        default=SUPABASE_DB_URL,
+    'default': dj_database_url.parse(
+        DATABASE_URL,
         conn_max_age=600
     )
 }
