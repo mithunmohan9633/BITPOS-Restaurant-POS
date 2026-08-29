@@ -369,7 +369,7 @@ def print_bill_for_order(order, synchronous: bool = False) -> dict:
     """
     company = order.company
     from .models import Printer
-    cash_printer = Printer.objects.filter(company=company, printer_type='cash_bill', is_active=True).first()
+    cash_printer = Printer.objects.filter(company=company, printer_type__in=['cash_bill', 'bill'], is_active=True).first()
     
     if not cash_printer:
         return {'success': False, 'message': 'No Cash/Bill printer configured for this store'}
