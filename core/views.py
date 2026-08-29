@@ -1165,3 +1165,17 @@ def api_print_bill(request, order_number):
             return JsonResponse({'success': False, 'message': 'Order not found'}, status=404)
     return JsonResponse({'error': 'POST only'}, status=405)
 
+
+def api_db_status(request):
+    import django.db
+    return JsonResponse({
+        'engine': django.db.connection.settings_dict.get('ENGINE'),
+        'host': django.db.connection.settings_dict.get('HOST', ''),
+        'db_name': django.db.connection.settings_dict.get('NAME', ''),
+        'user': request.user.username if request.user.is_authenticated else 'Anonymous',
+        'company': request.user.profile.company.name if (request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.company) else None,
+        'total_orders': Order.objects.count(),
+        'orders': list(Order.objects.values('order_number', 'total_amount', 'company__name', 'status')),
+        'companies': list(Company.objects.values('id', 'name')),
+    })
+

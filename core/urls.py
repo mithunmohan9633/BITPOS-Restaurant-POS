@@ -36,4 +36,5 @@ urlpatterns = [
     path('api/companies/', api_views.get_companies, name='api_companies'),
     path('api/users/', api_views.manage_users_api, name='api_users'),
     path('api/menu/', api_views.get_menu, name='api_menu'),
+    path('api/db-status/', views.api_db_status, name='api_db_status'),
 ]
