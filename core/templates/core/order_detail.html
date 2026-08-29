@@ -34,7 +34,7 @@
     <div class="container">
         <div class="card">
             <div class="order-header">
-                <div class="order-num">{{ order.order_number }}</div>
+                <div class="order-num" style="font-weight:900; font-size:1.6rem; letter-spacing:0.5px;">{{ order.order_number }}</div>
                 <div style="color:var(--muted)">{{ order.created_at|date:"d M Y, h:i A" }}</div>
             </div>
             <div class="meta-row"><span>Payment Method</span><span>{{ order.get_payment_method_display }}</span></div>

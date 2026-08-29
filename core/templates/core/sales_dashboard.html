@@ -74,6 +74,29 @@
         .product-header span:first-child { flex: 2; }
         .product-header span:nth-child(2) { flex: 1; text-align: center; }
         .product-header span:last-child { flex: 1; text-align: right; }
+
+        /* Report Export Panel */
+        .report-panel { background: var(--card); border-radius: 16px; padding: 20px 25px; border: 1px solid var(--border); margin-bottom: 25px; }
+        .btn-export-excel {
+            padding: 10px 18px; background: #107C41; color: white; border: none;
+            border-radius: 8px; font-weight: 800; font-size: 0.9rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif; text-decoration: none;
+        }
+        .btn-export-excel:hover {
+            background: #0d6334; transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 124, 65, 0.35);
+        }
+        .btn-export-pdf {
+            padding: 10px 18px; background: #D9381E; color: white; border: none;
+            border-radius: 8px; font-weight: 800; font-size: 0.9rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif; text-decoration: none;
+        }
+        .btn-export-pdf:hover {
+            background: #b52c15; transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(217, 56, 30, 0.35);
+        }
     </style>
 </head>
 <body>
@@ -84,6 +107,7 @@
             <a href="/orders/">Orders</a>
             <a href="/menu/">Menu</a>
             <a href="/tables/">Tables</a>
+            <a href="/printers/">Printers</a>
             <a href="/users/">Staff</a>
             <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
         </div>
@@ -98,6 +122,45 @@
     </div>
     {% endif %}
     <div class="container">
+        <!-- Report Generation Panel -->
+        <div class="report-panel">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:15px;">
+                <div>
+                    <h2 style="margin:0 0 4px; display:flex; align-items:center; gap:8px; font-size:1.2rem; color:var(--primary);">
+                        <span>📊</span> Export Sales Reports
+                    </h2>
+                    <p style="margin:0; color:var(--muted); font-size:0.85rem;">Download formatted sales summaries, KPI analytics, and detailed orders</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                    <!-- Period Select -->
+                    <select id="report-period" onchange="toggleCustomDates(this.value)" style="padding:10px 14px; background:var(--bg); border:2px solid var(--border); color:var(--text); border-radius:8px; font-family:'Outfit',sans-serif; font-weight:700; font-size:0.9rem;">
+                        <option value="today">Today</option>
+                        <option value="week">This Week</option>
+                        <option value="month" selected>This Month</option>
+                        <option value="year">This Year</option>
+                        <option value="all">All Time</option>
+                        <option value="custom">Custom Date Range</option>
+                    </select>
+
+                    <div id="custom-date-inputs" style="display:none; align-items:center; gap:8px;">
+                        <input type="date" id="report-date-from" style="padding:8px 12px; background:var(--bg); border:2px solid var(--border); color:var(--text); border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.85rem;">
+                        <span style="color:var(--muted); font-size:0.85rem;">to</span>
+                        <input type="date" id="report-date-to" style="padding:8px 12px; background:var(--bg); border:2px solid var(--border); color:var(--text); border-radius:8px; font-family:'Outfit',sans-serif; font-size:0.85rem;">
+                    </div>
+
+                    <!-- Export Excel Button -->
+                    <button onclick="downloadReport('excel')" class="btn-export-excel" title="Download Excel (.xlsx) Report">
+                        <span>📗</span> Excel (.xlsx)
+                    </button>
+
+                    <!-- Export PDF Button -->
+                    <button onclick="downloadReport('pdf')" class="btn-export-pdf" title="Download PDF (.pdf) Report">
+                        <span>📕</span> PDF (.pdf)
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-label">Today's Sales</div>
@@ -274,6 +337,31 @@
                 document.getElementById('mupi-bar').style.width = (monthUpi / monthTotal * 100) + '%';
             }
         }, 300);
+
+        function toggleCustomDates(val) {
+            var customInputs = document.getElementById('custom-date-inputs');
+            if (val === 'custom') {
+                customInputs.style.display = 'inline-flex';
+            } else {
+                customInputs.style.display = 'none';
+            }
+        }
+
+        function downloadReport(format) {
+            var period = document.getElementById('report-period').value;
+            var url = '/reports/export/?format=' + encodeURIComponent(format) + '&period=' + encodeURIComponent(period);
+            if (period === 'custom') {
+                var dFrom = document.getElementById('report-date-from').value;
+                var dTo = document.getElementById('report-date-to').value;
+                if (!dFrom && !dTo) {
+                    alert('Please select a Date From or Date To for custom range.');
+                    return;
+                }
+                if (dFrom) url += '&date_from=' + encodeURIComponent(dFrom);
+                if (dTo) url += '&date_to=' + encodeURIComponent(dTo);
+            }
+            window.location.href = url;
+        }
     </script>
 </body>
 </html>

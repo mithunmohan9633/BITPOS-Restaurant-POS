@@ -36,7 +36,7 @@
     </div>
 
     <div class="bill-meta">
-        <div><span>Bill No:</span><span style="font-weight:800">{{ order.order_number }}</span></div>
+        <div><span>Bill No:</span><span style="font-weight:900; font-size:1.1rem; color:#000;">{{ order.order_number }}</span></div>
         {% if order.table %}
         <div><span>Table No:</span><span style="font-weight:800">{{ order.table.table_number }}</span></div>
         {% endif %}
@@ -80,15 +80,5 @@
     </div>
 
     <button class="print-btn" onclick="window.print()">Print Bill</button>
-
-    <script>
-        window.onload = function() {
-            window.focus();
-            window.print();
-            setTimeout(function() {
-                window.close();
-            }, 1000);
-        };
-    </script>
 </body>
 </html>

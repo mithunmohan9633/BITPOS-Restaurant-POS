@@ -6,7 +6,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
-from .models import Company, Category, MenuItem, UserProfile
+from .models import Company, Category, MenuItem, UserProfile, Printer, Table
+from .printer_service import print_kot_for_order, print_bill_for_order, test_printer, print_table_transfer_notice
 import re
 
 def validate_credentials(username, password=None):
@@ -292,6 +293,83 @@ def manage_users(request):
 
 
 @login_required(login_url='login_view')
+def manage_printers(request):
+    if not hasattr(request.user, 'profile') or request.user.profile.role != 'admin':
+        return HttpResponseForbidden("Access Denied: Only Store Admins can manage printers.")
+    company = request.user.profile.company
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_printer':
+            name = request.POST.get('name', '').strip().upper()
+            printer_type = request.POST.get('printer_type', 'kot')
+            ip_address = request.POST.get('ip_address', '').strip()
+            port = int(request.POST.get('port', 9100) or 9100)
+            if name and ip_address:
+                Printer.objects.create(
+                    company=company,
+                    name=name,
+                    printer_type=printer_type,
+                    ip_address=ip_address,
+                    port=port,
+                    is_active=True
+                )
+                messages.success(request, f"Printer '{name}' added successfully.")
+        elif action == 'edit_printer':
+            printer_id = request.POST.get('printer_id')
+            name = request.POST.get('name', '').strip().upper()
+            printer_type = request.POST.get('printer_type', 'kot')
+            ip_address = request.POST.get('ip_address', '').strip()
+            port = int(request.POST.get('port', 9100) or 9100)
+            is_active = request.POST.get('is_active') == 'on'
+            if printer_id and name and ip_address:
+                try:
+                    p = Printer.objects.get(id=printer_id, company=company)
+                    p.name = name
+                    p.printer_type = printer_type
+                    p.ip_address = ip_address
+                    p.port = port
+                    p.is_active = is_active
+                    p.save()
+                    messages.success(request, f"Printer '{name}' updated successfully.")
+                except Printer.DoesNotExist:
+                    messages.error(request, "Printer not found.")
+        elif action == 'delete_printer':
+            printer_id = request.POST.get('printer_id')
+            if printer_id:
+                try:
+                    p = Printer.objects.get(id=printer_id, company=company)
+                    p.delete()
+                    messages.success(request, "Printer deleted successfully.")
+                except Printer.DoesNotExist:
+                    messages.error(request, "Printer not found.")
+        elif action == 'map_category':
+            cat_id = request.POST.get('category_id')
+            printer_id = request.POST.get('printer_id')
+            if cat_id:
+                try:
+                    cat = Category.objects.get(id=cat_id, company=company)
+                    if printer_id:
+                        cat.printer = Printer.objects.get(id=printer_id, company=company)
+                    else:
+                        cat.printer = None
+                    cat.save()
+                    messages.success(request, f"Category '{cat.name}' assigned to {cat.printer.name if cat.printer else 'None'}.")
+                except Exception:
+                    messages.error(request, "Error assigning category to printer.")
+        return HttpResponseRedirect(reverse('manage_printers'))
+
+    printers = Printer.objects.filter(company=company).order_by('printer_type', 'name')
+    categories = Category.objects.filter(company=company).select_related('printer')
+    kot_printers = printers.filter(printer_type='kot')
+    return render(request, 'core/manage_printers.html', {
+        'printers': printers,
+        'categories': categories,
+        'kot_printers': kot_printers,
+        'company': company
+    })
+
+
+@login_required(login_url='login_view')
 def manage_menu(request):
     if not hasattr(request.user, 'profile') or request.user.profile.role != 'admin':
         return HttpResponseForbidden("Access Denied: Only Store Admins can manage the menu.")
@@ -300,28 +378,53 @@ def manage_menu(request):
         action = request.POST.get('action')
         if action == 'add_category':
             name = request.POST.get('name')
+            printer_id = request.POST.get('printer')
             if name:
                 if Category.objects.filter(company=company, name__iexact=name).exists():
                     messages.error(request, f"A category with the name '{name}' already exists.")
                 else:
-                    Category.objects.create(name=name, company=company)
+                    printer = Printer.objects.filter(id=printer_id, company=company).first() if printer_id else None
+                    Category.objects.create(name=name, company=company, printer=printer)
                     messages.success(request, "Category added successfully.")
+        elif action == 'edit_category':
+            cat_id = request.POST.get('category_id')
+            name = request.POST.get('name')
+            printer_id = request.POST.get('printer')
+            if cat_id and name:
+                try:
+                    cat = Category.objects.get(id=cat_id, company=company)
+                    cat.name = name
+                    cat.printer = Printer.objects.filter(id=printer_id, company=company).first() if printer_id else None
+                    cat.save()
+                    messages.success(request, "Category updated successfully.")
+                except Category.DoesNotExist:
+                    pass
+        elif action == 'delete_category':
+            cat_id = request.POST.get('category_id')
+            if cat_id:
+                try:
+                    Category.objects.filter(id=cat_id, company=company).delete()
+                    messages.success(request, "Category deleted successfully.")
+                except Exception:
+                    pass
         elif action == 'add_item':
             category_id = request.POST.get('category')
             name = request.POST.get('name')
             price = request.POST.get('price')
+            image = request.FILES.get('image')
             if name and price and category_id:
                 if MenuItem.objects.filter(company=company, name__iexact=name).exists():
                     messages.error(request, f"A product with the name '{name}' already exists.")
                 else:
                     category = Category.objects.get(id=category_id, company=company)
-                    MenuItem.objects.create(name=name, price=price, category=category, company=company)
+                    MenuItem.objects.create(name=name, price=price, category=category, company=company, image=image)
                     messages.success(request, "Product added successfully.")
         elif action == 'edit_item':
             item_id = request.POST.get('item_id')
             category_id = request.POST.get('category')
             name = request.POST.get('name')
             price = request.POST.get('price')
+            image = request.FILES.get('image')
             if item_id and name and price and category_id:
                 if MenuItem.objects.filter(company=company, name__iexact=name).exclude(id=item_id).exists():
                     messages.error(request, f"A product with the name '{name}' already exists.")
@@ -332,6 +435,8 @@ def manage_menu(request):
                         item.name = name
                         item.price = price
                         item.category = category
+                        if image:
+                            item.image = image
                         item.save()
                         messages.success(request, "Product updated successfully.")
                     except Exception as e:
@@ -347,7 +452,12 @@ def manage_menu(request):
                     messages.error(request, "Error deleting product.")
         return HttpResponseRedirect(reverse('manage_menu'))
     categories = Category.objects.filter(company=company).prefetch_related('items')
-    return render(request, 'core/manage_menu.html', {'categories': categories})
+    kot_printers = Printer.objects.filter(company=company, printer_type='kot', is_active=True)
+    return render(request, 'core/manage_menu.html', {
+        'categories': categories,
+        'kot_printers': kot_printers,
+        'company': company
+    })
 
 import json
 from django.http import JsonResponse
@@ -427,9 +537,10 @@ def create_order(request):
                 table=table
             )
 
+        new_order_items = []
         for item in items:
             menu_item = MenuItem.objects.get(id=item['id'])
-            OrderItem.objects.create(
+            oi = OrderItem.objects.create(
                 order=order,
                 menu_item=menu_item,
                 item_name=menu_item.name,
@@ -437,8 +548,26 @@ def create_order(request):
                 price=menu_item.price,
                 is_printed=False
             )
+            new_order_items.append(oi)
 
-        return JsonResponse({'success': True, 'order_number': order.order_number})
+        kot_results = {}
+        bill_results = {}
+        # Route KOT tickets directly to station network printers (KITCHEN, JUICE, etc.)
+        kot_results = print_kot_for_order(order, new_order_items, synchronous=False)
+        for oi in new_order_items:
+            oi.is_printed = True
+            oi.save()
+
+        # If direct checkout, also send tax invoice to CASH printer
+        if action == 'checkout':
+            bill_results = print_bill_for_order(order, synchronous=False)
+
+        return JsonResponse({
+            'success': True,
+            'order_number': order.order_number,
+            'kot_results': kot_results,
+            'bill_results': bill_results
+        })
     return JsonResponse({'error': 'POST only'}, status=405)
 
 
@@ -502,18 +631,83 @@ def pay_order(request, order_number):
         company = request.user.profile.company
         
         try:
-            order = Order.objects.get(order_number=order_number, company=company, status='pending')
+            order = Order.objects.get(order_number=order_number, company=company)
+            if order.status == 'paid':
+                return JsonResponse({'error': 'Order is already paid', 'already_paid': True}, status=400)
         except Order.DoesNotExist:
-            return JsonResponse({'error': 'Order not found or already paid'}, status=404)
+            return JsonResponse({'error': 'Order not found'}, status=404)
             
         order.payment_method = data.get('payment_method', 'cash')
-        order.cash_amount = float(data.get('cash_amount', 0))
-        order.upi_amount = float(data.get('upi_amount', 0))
+        cash_val = float(data.get('cash_amount', 0))
+        upi_val = float(data.get('upi_amount', 0))
+        if cash_val == 0 and upi_val == 0:
+            if order.payment_method == 'cash':
+                cash_val = float(order.total_amount)
+            elif order.payment_method == 'upi':
+                upi_val = float(order.total_amount)
+        order.cash_amount = cash_val
+        order.upi_amount = upi_val
         order.status = 'paid'
-        order.billed_by = request.user
+        if not order.billed_by:
+            order.billed_by = request.user
         order.save()
         
-        return JsonResponse({'success': True, 'order_number': order.order_number})
+        bill_result = print_bill_for_order(order, synchronous=False)
+        return JsonResponse({'success': True, 'order_number': order.order_number, 'bill_result': bill_result})
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@csrf_exempt
+@login_required(login_url='login_view')
+def transfer_table(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+        except Exception:
+            return JsonResponse({'error': 'Invalid JSON'}, status=400)
+            
+        company = request.user.profile.company
+        order_number = data.get('order_number')
+        new_table_id = data.get('new_table_id')
+        
+        if not order_number or not new_table_id:
+            return JsonResponse({'error': 'order_number and new_table_id are required'}, status=400)
+            
+        try:
+            order = Order.objects.get(order_number=order_number, company=company)
+        except Order.DoesNotExist:
+            return JsonResponse({'error': 'Order not found'}, status=404)
+            
+        if order.status == 'paid':
+            return JsonResponse({'error': 'Cannot transfer an already paid order'}, status=400)
+            
+        try:
+            new_table = Table.objects.get(id=new_table_id, company=company)
+        except Table.DoesNotExist:
+            return JsonResponse({'error': 'New table not found'}, status=404)
+            
+        old_table = order.table
+        old_table_label = f"Table {old_table.table_number}" if old_table else "Direct Sale / No Table"
+        new_table_label = f"Table {new_table.table_number}"
+        
+        if old_table and old_table.id == new_table.id:
+            return JsonResponse({'error': 'Order is already assigned to this table'}, status=400)
+            
+        # Update order table
+        order.table = new_table
+        order.save()
+        
+        # Dispatch Table Transfer Notice to all Kitchen & Station Printers!
+        kitchen_results = print_table_transfer_notice(order, old_table_label, new_table_label, synchronous=False)
+        
+        return JsonResponse({
+            'success': True,
+            'order_number': order.order_number,
+            'old_table': old_table_label,
+            'new_table': new_table_label,
+            'new_table_id': new_table.id,
+            'kitchen_results': kitchen_results
+        })
     return JsonResponse({'error': 'POST only'}, status=405)
 
 
@@ -668,6 +862,90 @@ def sales_dashboard(request):
         'daily_data': json.dumps(daily_data),
     })
 
+from .report_service import generate_excel_report, generate_pdf_report
+from django.http import HttpResponse
+
+@login_required(login_url='login_view')
+def export_sales_report(request):
+    if not hasattr(request.user, 'profile') or request.user.profile.role != 'admin':
+        return HttpResponseForbidden("Access Denied: Store Admin only.")
+    
+    company = request.user.profile.company
+    format_type = request.GET.get('format', 'excel').lower()
+    period = request.GET.get('period', 'month').lower()
+    date_from = request.GET.get('date_from', '')
+    date_to = request.GET.get('date_to', '')
+    
+    from django.utils import timezone
+    from datetime import timedelta
+    today = timezone.localdate()
+    
+    orders = Order.objects.filter(company=company)
+    date_label = "All Time"
+    
+    if period == 'today':
+        orders = orders.filter(created_at__date=today)
+        date_label = f"Today ({today.strftime('%d %b %Y')})"
+    elif period == 'week':
+        week_start = today - timedelta(days=today.weekday())
+        orders = orders.filter(created_at__date__gte=week_start)
+        date_label = f"This Week ({week_start.strftime('%d %b')} - {today.strftime('%d %b %Y')})"
+    elif period == 'month':
+        month_start = today.replace(day=1)
+        orders = orders.filter(created_at__date__gte=month_start)
+        date_label = f"This Month ({month_start.strftime('%B %Y')})"
+    elif period == 'year':
+        year_start = today.replace(month=1, day=1)
+        orders = orders.filter(created_at__date__gte=year_start)
+        date_label = f"This Year ({today.year})"
+    elif period == 'custom' or (date_from and date_to):
+        if date_from:
+            orders = orders.filter(created_at__date__gte=date_from)
+        if date_to:
+            orders = orders.filter(created_at__date__lte=date_to)
+        date_label = f"{date_from or 'Start'} to {date_to or 'Present'}"
+    
+    orders = orders.order_by('-created_at')
+    
+    paid_orders = orders.filter(status='paid')
+    total_sales = float(paid_orders.aggregate(total=Sum('total_amount'))['total'] or 0)
+    total_cash = float(paid_orders.aggregate(total=Sum('cash_amount'))['total'] or 0)
+    total_upi = float(paid_orders.aggregate(total=Sum('upi_amount'))['total'] or 0)
+    total_orders_count = orders.count()
+    avg_order_value = total_sales / total_orders_count if total_orders_count > 0 else 0
+    
+    summary_metrics = {
+        'total_sales': total_sales,
+        'total_orders': total_orders_count,
+        'total_cash': total_cash,
+        'total_upi': total_upi,
+        'avg_order_value': avg_order_value
+    }
+    
+    product_sales = OrderItem.objects.filter(
+        order__in=paid_orders
+    ).values('item_name').annotate(
+        total_qty=Sum('quantity'),
+        total_revenue=Sum('price')
+    ).order_by('-total_revenue')
+    
+    timestamp_str = timezone.localtime().strftime('%Y%m%d_%H%M%S')
+    company_slug = "".join([c if c.isalnum() else "_" for c in company.name])
+    
+    if format_type == 'pdf':
+        pdf_buffer = generate_pdf_report(company, orders, product_sales, date_label, summary_metrics)
+        response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
+        response['Content-Disposition'] = f'attachment; filename="{company_slug}_Report_{timestamp_str}.pdf"'
+        return response
+    else:
+        excel_buffer = generate_excel_report(company, orders, product_sales, date_label, summary_metrics)
+        response = HttpResponse(
+            excel_buffer.getvalue(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="{company_slug}_Report_{timestamp_str}.xlsx"'
+        return response
+
 @login_required(login_url='login_view')
 def super_admin_renew_company(request, company_id):
     if not request.user.is_superuser:
@@ -772,7 +1050,51 @@ def invoice_order(request, order_number):
             order = Order.objects.get(order_number=order_number, company=company, status='pending')
             order.status = 'invoiced'
             order.save()
-            return JsonResponse({'success': True})
+            bill_result = print_bill_for_order(order, synchronous=False)
+            return JsonResponse({'success': True, 'bill_result': bill_result})
         except Order.DoesNotExist:
             return JsonResponse({'error': 'Order not found or already invoiced'}, status=404)
     return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@csrf_exempt
+@login_required(login_url='login_view')
+def api_test_printer(request, printer_id):
+    if request.method == 'POST':
+        company = request.user.profile.company
+        try:
+            printer = Printer.objects.get(id=printer_id, company=company)
+            success, msg = test_printer(printer, synchronous=True)
+            return JsonResponse({'success': success, 'message': msg})
+        except Printer.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Printer not found'}, status=404)
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@csrf_exempt
+@login_required(login_url='login_view')
+def api_print_kot(request, order_number):
+    if request.method == 'POST':
+        company = request.user.profile.company
+        try:
+            order = Order.objects.get(order_number=order_number, company=company)
+            results = print_kot_for_order(order, synchronous=False)
+            return JsonResponse({'success': True, 'results': results})
+        except Order.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Order not found'}, status=404)
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@csrf_exempt
+@login_required(login_url='login_view')
+def api_print_bill(request, order_number):
+    if request.method == 'POST':
+        company = request.user.profile.company
+        try:
+            order = Order.objects.get(order_number=order_number, company=company)
+            result = print_bill_for_order(order, synchronous=False)
+            return JsonResponse({'success': True, 'result': result})
+        except Order.DoesNotExist:
+            return JsonResponse({'success': False, 'message': 'Order not found'}, status=404)
+    return JsonResponse({'error': 'POST only'}, status=405)
+

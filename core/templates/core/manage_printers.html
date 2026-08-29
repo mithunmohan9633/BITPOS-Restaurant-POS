@@ -1,0 +1,263 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Printers | BITPOS</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+    <style>
+        :root { --bg: #1A1A2E; --card: #16213E; --primary: #D38C44; --accent: #0F3460; --text: #E8E8E8; --muted: #8892B0; --border: #233554; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Outfit', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+        header { background: var(--card); padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border); }
+        h1 { font-weight: 800; font-size: 1.5rem; color: var(--primary); }
+        .nav-links a { color: var(--muted); text-decoration: none; margin-left: 20px; font-weight: 600; padding: 6px 12px; border-radius: 6px; transition: 0.2s; }
+        .nav-links a:hover, .nav-links a.active { color: var(--primary); background: rgba(211,140,68,0.1); }
+        .container { max-width: 1200px; margin: 30px auto; padding: 0 20px; display: flex; flex-direction: column; gap: 30px; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1.5fr; gap: 25px; align-items: flex-start; }
+        .card { background: var(--card); border-radius: 16px; padding: 25px; border: 1px solid var(--border); }
+        .card h2 { color: var(--primary); margin-bottom: 20px; padding-bottom: 12px; border-bottom: 2px dashed var(--border); font-size: 1.25rem; display: flex; justify-content: space-between; align-items: center; }
+        input, select { width: 100%; padding: 12px 14px; margin: 8px 0; border-radius: 8px; border: 2px solid var(--border); background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; font-size: 1rem; }
+        input:focus, select:focus { outline: none; border-color: var(--primary); }
+        input::placeholder { color: var(--muted); }
+        .btn { width: 100%; padding: 12px; margin-top: 15px; border: none; border-radius: 8px; font-family: 'Outfit', sans-serif; font-weight: 800; font-size: 1rem; cursor: pointer; transition: 0.2s; }
+        .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+        .btn-primary { background: var(--primary); color: white; }
+        .btn-accent { background: var(--accent); color: white; }
+        .btn-success { background: #4ECB71; color: white; }
+        .printer-card { background: rgba(15, 52, 96, 0.25); border: 1.5px solid var(--border); border-radius: 12px; padding: 18px; margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 15px; }
+        .printer-info h3 { font-size: 1.2rem; font-weight: 800; color: #fff; margin-bottom: 4px; display: flex; align-items: center; gap: 10px; }
+        .printer-ip { font-family: monospace; font-size: 0.95rem; color: var(--primary); font-weight: 600; }
+        .badge { padding: 4px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge-bill { background: rgba(78, 203, 113, 0.15); color: #4ECB71; border: 1px solid #4ECB71; }
+        .badge-kot { background: rgba(211, 140, 68, 0.15); color: var(--primary); border: 1px solid var(--primary); }
+        .action-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+        .btn-sm { padding: 8px 12px; font-size: 0.85rem; font-weight: 800; border-radius: 6px; border: none; cursor: pointer; font-family: 'Outfit', sans-serif; }
+        .table-row { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border); }
+        .table-row:last-child { border-bottom: none; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); backdrop-filter: blur(4px); }
+        .modal-content { background-color: var(--card); margin: 8% auto; padding: 30px; border: 1px solid var(--border); border-radius: 16px; width: 450px; max-width: 90%; }
+        .close-btn { color: var(--muted); float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close-btn:hover { color: var(--text); }
+        @media (max-width: 900px) {
+            .grid-2 { grid-template-columns: 1fr; }
+            header { flex-direction: column; text-align: center; gap: 15px; }
+            .nav-links { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+            .nav-links a { margin-left: 0; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>BITPOS</h1>
+        <div class="nav-links">
+            <a href="/sales/">Sales</a>
+            <a href="/orders/">Orders</a>
+            <a href="/menu/">Menu</a>
+            <a href="/tables/">Tables</a>
+            <a href="/printers/" class="active">Printers</a>
+            <a href="/users/">Staff</a>
+            <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
+        </div>
+    </header>
+
+    {% if messages %}
+    <div id="toast-container" style="position: fixed; top: 30px; right: 30px; z-index: 9999;">
+        {% for message in messages %}
+            <div class="toast" style="padding: 15px 25px; border-radius: 8px; margin-bottom: 10px; font-weight: 600; box-shadow: 0 4px 15px rgba(0,0,0,0.3); animation: slideIn 0.4s ease-out forwards, fadeOut 0.4s ease-in 4s forwards;
+                {% if message.tags == 'error' %}background-color: #E94560; color: white; border-left: 5px solid #bd2840;
+                {% else %}background-color: #4CAF50; color: white; border-left: 5px solid #388E3C;{% endif %}">
+                {{ message }}
+            </div>
+        {% endfor %}
+    </div>
+    <style>
+        @keyframes slideIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOut { from { opacity: 1; } to { opacity: 0; visibility: hidden; } }
+    </style>
+    {% endif %}
+
+    <div class="container">
+        <div class="grid-2">
+            <!-- Add Printer Form -->
+            <div class="card">
+                <h2>Add Network Printer</h2>
+                <form method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_printer">
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Printer Name (e.g. CASH, KITCHEN, JUICE)</label>
+                    <input type="text" name="name" placeholder="Printer Station Name" required>
+                    
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Printer Role / Type</label>
+                    <select name="printer_type" required>
+                        <option value="kot">KOT Station Printer (Kitchen, Drinks, etc.)</option>
+                        <option value="cash_bill">Cash / Bill Printer (Invoices & Receipts)</option>
+                    </select>
+
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Network IP Address</label>
+                    <input type="text" name="ip_address" placeholder="e.g. 192.168.1.10" required>
+
+                    <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Port (Default 9100)</label>
+                    <input type="number" name="port" value="9100" required>
+
+                    <button type="submit" class="btn btn-primary">Add Printer</button>
+                </form>
+            </div>
+
+            <!-- Active Printers List -->
+            <div class="card">
+                <h2>
+                    <span>Active Printers ({{ company.name }})</span>
+                    <span style="font-size:0.85rem; color:var(--muted); font-weight:600;">ESC/POS (Raw Socket)</span>
+                </h2>
+                
+                {% if not printers %}
+                <div style="text-align:center; padding:30px; color:var(--muted);">
+                    No network printers configured yet. Add your first printer on the left!
+                </div>
+                {% endif %}
+
+                {% for p in printers %}
+                <div class="printer-card">
+                    <div class="printer-info">
+                        <h3>
+                            {{ p.name }}
+                            {% if p.printer_type == 'cash_bill' %}
+                            <span class="badge badge-bill">Bill / Cash</span>
+                            {% else %}
+                            <span class="badge badge-kot">KOT Station</span>
+                            {% endif %}
+                        </h3>
+                        <div class="printer-ip">{{ p.ip_address }}:{{ p.port }}</div>
+                    </div>
+                    <div class="action-btns">
+                        <button class="btn-sm" id="test-btn-{{ p.id }}" onclick="testPrint('{{ p.id }}', '{{ p.name|escapejs }}')" style="background:#4ECB71; color:white;">&#128424; Test Print</button>
+                        <button class="btn-sm" onclick="openEditModal('{{ p.id }}', '{{ p.name|escapejs }}', '{{ p.printer_type }}', '{{ p.ip_address }}', '{{ p.port }}', {{ p.is_active|yesno:'true,false' }})" style="background:var(--accent); color:white;">Edit</button>
+                        <form method="POST" style="display:inline;" onsubmit="return confirm('Delete printer {{ p.name }}?');">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_printer">
+                            <input type="hidden" name="printer_id" value="{{ p.id }}">
+                            <button type="submit" class="btn-sm" style="background:#E94560; color:white;">Delete</button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Category to Printer Routing Section -->
+        <div class="card">
+            <h2>
+                <span>Category &rarr; KOT Printer Routing</span>
+                <span style="font-size:0.85rem; color:var(--muted); font-weight:600;">Automated Kitchen & Beverage Dispatch</span>
+            </h2>
+            <p style="font-size:0.9rem; color:var(--muted); margin-bottom:20px;">
+                Assign each menu category to its dedicated station printer. Items ordered under a category will automatically route and print to that specific printer over your network hub.
+            </p>
+
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                {% for cat in categories %}
+                <div class="table-row">
+                    <div>
+                        <strong style="font-size:1.1rem; color:#fff;">{{ cat.name }}</strong>
+                        <div style="font-size:0.85rem; color:var(--muted);">{{ cat.items.count }} items in category</div>
+                    </div>
+                    <form method="POST" style="display:flex; align-items:center; gap:10px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="map_category">
+                        <input type="hidden" name="category_id" value="{{ cat.id }}">
+                        <select name="printer_id" onchange="this.form.submit()" style="width:240px; margin:0; padding:8px 12px; font-weight:600;">
+                            <option value="">-- No Printer (Default KOT) --</option>
+                            {% for kp in kot_printers %}
+                            <option value="{{ kp.id }}" {% if cat.printer_id == kp.id %}selected{% endif %}>
+                                {{ kp.name }} ({{ kp.ip_address }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </form>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Printer Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close-btn" onclick="closeEditModal()">&times;</span>
+            <h2 style="color:var(--primary); margin-bottom:20px;">Edit Printer</h2>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_printer">
+                <input type="hidden" name="printer_id" id="edit_printer_id">
+
+                <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Printer Name</label>
+                <input type="text" name="name" id="edit_name" required>
+
+                <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Printer Role / Type</label>
+                <select name="printer_type" id="edit_printer_type" required>
+                    <option value="kot">KOT Station Printer</option>
+                    <option value="cash_bill">Cash / Bill Printer</option>
+                </select>
+
+                <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Network IP Address</label>
+                <input type="text" name="ip_address" id="edit_ip_address" required>
+
+                <label style="font-size:0.85rem; font-weight:600; color:var(--muted);">Port</label>
+                <input type="number" name="port" id="edit_port" required>
+
+                <div style="display:flex; align-items:center; gap:10px; margin:15px 0;">
+                    <input type="checkbox" name="is_active" id="edit_is_active" style="width:auto; margin:0;">
+                    <label for="edit_is_active" style="font-weight:600;">Active / Online</label>
+                </div>
+
+                <button type="submit" class="btn btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditModal(id, name, type, ip, port, isActive) {
+            document.getElementById('edit_printer_id').value = id;
+            document.getElementById('edit_name').value = name;
+            document.getElementById('edit_printer_type').value = type;
+            document.getElementById('edit_ip_address').value = ip;
+            document.getElementById('edit_port').value = port;
+            document.getElementById('edit_is_active').checked = isActive;
+            document.getElementById('editModal').style.display = 'block';
+        }
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+        window.onclick = function(event) {
+            if (event.target == document.getElementById('editModal')) {
+                closeEditModal();
+            }
+        }
+
+        function testPrint(printerId, name) {
+            const btn = document.getElementById('test-btn-' + printerId);
+            const originalText = btn.innerHTML;
+            btn.innerHTML = 'Sending...';
+            btn.disabled = true;
+
+            fetch('/api/printers/test/' + printerId + '/', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                if(data.success) {
+                    alert('Test Print Sent to ' + name + '!\n' + data.message);
+                } else {
+                    alert('Printer Test Failed for ' + name + ':\n' + data.message);
+                }
+            })
+            .catch(err => {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+                alert('Network error testing printer: ' + err);
+            });
+        }
+    </script>
+</body>
+</html>

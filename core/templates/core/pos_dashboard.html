@@ -12,13 +12,65 @@
         h1 { margin: 0; font-weight: 800; font-size: 1.5rem; color: #4A3B32; }
         .main-container { display: flex; flex: 1; padding: 20px; gap: 20px; overflow: hidden; }
         .menu-section { flex: 2; display: flex; flex-direction: column; overflow-y: auto; padding-right: 10px; }
-        .category-header { font-size: 1.2rem; font-weight: 800; margin: 10px 0; color: var(--primary); }
-        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }
-        .menu-card { background: var(--card-bg); border: 2px solid var(--border); border-radius: 12px; padding: 15px; text-align: center; cursor: pointer; transition: all 0.2s; user-select: none; }
-        .menu-card:active { transform: scale(0.95); }
-        .menu-card:hover { border-color: var(--primary); transform: translateY(-2px); box-shadow: 0 4px 10px rgba(74, 59, 50, 0.1); }
-        .item-name { font-weight: 600; margin-bottom: 5px; }
-        .item-price { color: var(--primary); font-weight: 800; }
+        
+        /* Category Navigation Tabs */
+        .category-tabs-container { margin-bottom: 12px; }
+        .category-tabs { display: flex; gap: 8px; overflow-x: auto; padding: 2px 2px 8px; scroll-behavior: smooth; }
+        .category-tabs::-webkit-scrollbar { height: 4px; }
+        .category-tabs::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+        
+        .category-tab-btn {
+            background: #FFFFFF; border: 2px solid var(--border); border-radius: 30px;
+            padding: 8px 18px; font-family: 'Outfit', sans-serif; font-weight: 700;
+            font-size: 0.95rem; color: var(--text-color); cursor: pointer;
+            white-space: nowrap; display: flex; align-items: center; gap: 8px;
+            transition: all 0.2s ease; user-select: none;
+        }
+        .category-tab-btn:hover { border-color: var(--primary); color: var(--primary); transform: translateY(-1px); }
+        .category-tab-btn.active {
+            background: var(--primary); border-color: var(--primary); color: #FFFFFF;
+            box-shadow: 0 4px 12px rgba(211, 140, 68, 0.25);
+        }
+        .cat-count-badge { font-size: 0.75rem; padding: 2px 7px; border-radius: 10px; background: rgba(74, 59, 50, 0.08); color: inherit; }
+        .category-tab-btn.active .cat-count-badge { background: rgba(255, 255, 255, 0.25); color: #FFFFFF; }
+
+        /* Search input */
+        .search-wrapper { margin-bottom: 15px; }
+        .pos-search-input {
+            width: 100%; padding: 11px 16px; border-radius: 10px; border: 2px solid var(--border);
+            background: #FFFFFF; font-family: 'Outfit', sans-serif; font-size: 0.95rem;
+            color: var(--text-color); outline: none; transition: border-color 0.2s; box-sizing: border-box;
+        }
+        .pos-search-input:focus { border-color: var(--primary); }
+
+        /* Product Cards Grid */
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 16px; margin-bottom: 20px; }
+        .menu-card {
+            background: var(--card-bg); border: 2px solid var(--border); border-radius: 14px;
+            overflow: hidden; cursor: pointer; transition: all 0.2s ease; user-select: none;
+            display: flex; flex-direction: column; position: relative;
+        }
+        .menu-card:hover { border-color: var(--primary); transform: translateY(-3px); box-shadow: 0 6px 16px rgba(74, 59, 50, 0.1); }
+        .menu-card:active { transform: scale(0.97); }
+        .menu-card-img-wrap {
+            height: 110px; width: 100%; background: #FAF5F0; display: flex;
+            align-items: center; justify-content: center; position: relative;
+            overflow: hidden; border-bottom: 1px solid var(--border);
+        }
+        .menu-card-img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s ease; }
+        .menu-card:hover .menu-card-img { transform: scale(1.05); }
+        .menu-card-fallback-icon { font-size: 2.6rem; opacity: 0.8; }
+        .item-qty-badge {
+            position: absolute; top: 8px; right: 8px; background: var(--primary);
+            color: white; font-weight: 800; font-size: 0.8rem; width: 24px;
+            height: 24px; border-radius: 50%; display: none; align-items: center;
+            justify-content: center; box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+        }
+        .menu-card-body { padding: 10px 12px; display: flex; flex-direction: column; flex: 1; justify-content: space-between; }
+        .item-name { font-weight: 700; font-size: 0.95rem; color: #4A3B32; margin-bottom: 6px; line-height: 1.3; }
+        .item-meta-row { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; }
+        .item-cat-tag { font-size: 0.7rem; font-weight: 700; color: #8A7A6F; background: #F5EDE6; padding: 2px 6px; border-radius: 4px; }
+        .item-price { color: var(--primary); font-weight: 800; font-size: 1.05rem; }
         .order-panel { flex: 1; background: var(--card-bg); border-radius: 16px; border: 2px solid var(--border); padding: 20px; display: flex; flex-direction: column; }
         .order-panel h2 { margin-top: 0; color: #4A3B32; border-bottom: 2px dashed var(--border); padding-bottom: 15px; }
         .cart-items { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
@@ -119,17 +171,61 @@
     </header>
     <div class='main-container'>
         <div class='menu-section'>
-            {% for category in categories %}
-            <div class='category-header'>{{ category.name }}</div>
-            <div class='menu-grid'>
-                {% for item in category.items.all %}
-                <div class='menu-card' onclick="addToCart('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, '{{ category.name|escapejs }}')">  
-                    <div class='item-name'>{{ item.name }}</div>
-                    <div class='item-price'>&#8377;{{ item.price }}</div>
+            <!-- Category Navigation Bar -->
+            <div class="category-tabs-container">
+                <div class="category-tabs" id="category-tabs">
+                    <button class="category-tab-btn active" onclick="selectCategory('all', this)">
+                        <span>All Items</span>
+                    </button>
+                    {% for category in categories %}
+                    <button class="category-tab-btn" onclick="selectCategory('cat-{{ category.id }}', this)">
+                        <span>{{ category.name }}</span>
+                        <span class="cat-count-badge">{{ category.items.count }}</span>
+                    </button>
+                    {% endfor %}
                 </div>
+            </div>
+
+            <!-- Fast Search Input -->
+            <div class="search-wrapper">
+                <input type="text" id="pos-search-input" class="pos-search-input" placeholder="&#128269; Search menu items..." oninput="filterMenuItems()">
+            </div>
+
+            <!-- Product Grid -->
+            <div class='menu-grid' id="menu-grid">
+                {% for category in categories %}
+                    {% for item in category.items.all %}
+                    <div class='menu-card' data-category="cat-{{ category.id }}" data-name="{{ item.name|lower }}" data-item-id="{{ item.id }}" onclick="addToCart('{{ item.id }}', '{{ item.name|escapejs }}', {{ item.price }}, '{{ category.name|escapejs }}')">  
+                        <div class="menu-card-img-wrap">
+                            {% if item.image %}
+                            <img src="{{ item.image.url }}" alt="{{ item.name }}" class="menu-card-img" loading="lazy">
+                            {% else %}
+                            <div class="menu-card-fallback-icon">
+                                {% if 'tea' in item.name|lower or 'coffee' in item.name|lower or 'drink' in category.name|lower or 'juice' in category.name|lower %}
+                                &#9749;
+                                {% elif 'biriyani' in item.name|lower or 'chicken' in item.name|lower or 'non' in category.name|lower or 'burger' in item.name|lower or 'pizza' in item.name|lower %}
+                                &#127858;
+                                {% else %}
+                                &#127860;
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                            <div class="item-qty-badge" id="card-badge-{{ item.id }}">0</div>
+                        </div>
+                        <div class="menu-card-body">
+                            <div class='item-name'>{{ item.name }}</div>
+                            <div class="item-meta-row">
+                                <span class="item-cat-tag">{{ category.name }}</span>
+                                <div class='item-price'>&#8377;{{ item.price }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
                 {% endfor %}
             </div>
-            {% endfor %}
+            <div id="no-items-placeholder" style="display:none; text-align:center; padding:40px; color:#8A7A6F; font-weight:600;">
+                No menu items found.
+            </div>
         </div>
         <div class='order-panel'>
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0;">
@@ -207,6 +303,38 @@
         </div>
     </div>
 
+    <!-- Change / Transfer Table Modal -->
+    <div class="payment-overlay" id="transfer-table-overlay" style="z-index: 1100;">
+        <div class="payment-modal" style="max-width: 440px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px dashed var(--border); padding-bottom:10px;">
+                <h2 style="margin:0; font-size:1.3rem; color:var(--primary);">&#128260; Change / Transfer Table</h2>
+                <button onclick="closeTransferTableModal()" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#C96459;">&times;</button>
+            </div>
+            <p style="margin:0 0 15px; color:#8A7A6F; font-size:1rem;">
+                Transferring Order: <strong id="transfer-order-number-display" style="color:var(--primary); font-size:1.3rem; font-weight:900; letter-spacing:0.5px; background:rgba(211,140,68,0.12); padding:4px 10px; border-radius:6px; display:inline-block;">#ORD-XXXXXX</strong>
+            </p>
+            <div style="margin-bottom: 20px;">
+                <label style="display:block; font-weight:700; margin-bottom:8px; font-size:0.9rem; color:var(--text-color);">Select Destination Table</label>
+                <select id="transfer-new-table-select" style="width: 100%; padding: 12px; border-radius: 8px; border: 2px solid var(--border); font-family: 'Outfit', sans-serif; font-size: 1rem; color: var(--text-color); background: white;">
+                    <option value="">-- Choose New Table --</option>
+                    {% for table in tables %}
+                    <option value="{{ table.id }}">Table {{ table.table_number }} (Cap: {{ table.seating_capacity }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div style="background:#FFF5EC; border:1px solid var(--primary); border-radius:8px; padding:10px 12px; margin-bottom:20px; font-size:0.85rem; color:#8A7A6F; display:flex; align-items:center; gap:8px;">
+                <span style="font-size:1.2rem;">&#128424;&#65039;</span>
+                <span>A <strong>Table Transfer Notice</strong> will be sent automatically to the Kitchen printers.</span>
+            </div>
+            <button id="confirm-transfer-btn" onclick="executeTableTransfer()" style="width:100%; padding:14px; background:var(--primary); color:white; border:none; border-radius:10px; font-weight:800; font-size:1.05rem; cursor:pointer; transition:0.2s;">
+                Confirm Table Transfer
+            </button>
+            <button onclick="closeTransferTableModal()" style="width:100%; padding:10px; background:transparent; border:none; color:#C96459; font-weight:700; font-size:0.9rem; cursor:pointer; margin-top:8px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
     <script>
         function openLogoutModal() {
             document.getElementById('logout-overlay').classList.add('active');
@@ -219,10 +347,43 @@
         let methods = { cash: false, upi: false };
         let currentPendingOrder = null;
         let currentPendingAmount = 0;
-        let currentOrderNumber = null;   // order number currently loaded into the panel
-        let currentTableId = null;       // table id currently loaded
-        let currentTableLabel = '';      // table label for display
+        let currentOrderNumber = null;
+        let currentTableId = null;
+        let currentTableLabel = '';
+        let currentSelectedCategory = 'all';
         const RUPEE = '\u20B9';
+
+        function selectCategory(catId, btnEl) {
+            currentSelectedCategory = catId;
+            document.querySelectorAll('.category-tab-btn').forEach(btn => btn.classList.remove('active'));
+            if (btnEl) btnEl.classList.add('active');
+            filterMenuItems();
+        }
+
+        function filterMenuItems() {
+            let searchVal = (document.getElementById('pos-search-input').value || '').trim().toLowerCase();
+            let cards = document.querySelectorAll('.menu-card');
+            let visibleCount = 0;
+
+            cards.forEach(card => {
+                let cardCat = card.getAttribute('data-category');
+                let cardName = card.getAttribute('data-name') || '';
+                let matchesCat = (currentSelectedCategory === 'all' || cardCat === currentSelectedCategory);
+                let matchesSearch = (!searchVal || cardName.includes(searchVal));
+
+                if (matchesCat && matchesSearch) {
+                    card.style.display = 'flex';
+                    visibleCount++;
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+
+            let placeholder = document.getElementById('no-items-placeholder');
+            if (placeholder) {
+                placeholder.style.display = (visibleCount === 0) ? 'block' : 'none';
+            }
+        }
 
         function addToCart(id, name, price, category) {
             if (cart[id]) { cart[id].qty += 1; }
@@ -305,6 +466,18 @@
                 kitchenBtn.disabled = false;
             }
             totalEl.innerText = RUPEE + total.toFixed(2);
+
+            document.querySelectorAll('.item-qty-badge').forEach(b => {
+                b.style.display = 'none';
+                b.innerText = '0';
+            });
+            for (let id in cart) {
+                let badge = document.getElementById('card-badge-' + id);
+                if (badge && cart[id].qty > 0) {
+                    badge.innerText = cart[id].qty;
+                    badge.style.display = 'flex';
+                }
+            }
         }
 
         function getSelectedTableId() {
@@ -330,34 +503,17 @@
                 return;
             }
 
+            let kitchenBtn = document.getElementById('kitchen-btn');
+            kitchenBtn.disabled = true;
+            kitchenBtn.innerHTML = '&#9203; Sending to Kitchen...';
+
             // Build items array for API
             let orderItems = [];
             for (let id in cart) {
                 orderItems.push({ id: id, qty: cart[id].qty });
             }
 
-            // Group cart items by category
-            let categoryGroups = {};
-            for (let id in cart) {
-                let cat = cart[id].category || 'Uncategorized';
-                if (!categoryGroups[cat]) categoryGroups[cat] = [];
-                categoryGroups[cat].push(cart[id]);
-            }
-
-            // IMPORTANT: Open the print window BEFORE the fetch to avoid popup blocking.
-            // Browsers only allow window.open() from direct user interaction, not from async callbacks.
-            var kotPrintWin = null;
-            var isRestaurant = {% if company.pos_type == 'restaurant' %}true{% else %}false{% endif %};
-            if (isRestaurant) {
-                kotPrintWin = window.open('', '_blank', 'width=400,height=600');
-                if (!kotPrintWin) {
-                    alert('Please allow popups for this site to print KOT tickets.');
-                    return;
-                }
-                kotPrintWin.document.write('<html><body style="font-family:sans-serif;padding:20px;">Preparing KOT...</body></html>');
-            }
-
-            // Save pending order to database
+            // Save pending order to database & trigger network KOT print
             fetch('/api/create-order/', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -374,71 +530,27 @@
             })
             .then(function(res) { return res.json(); })
             .then(function(data) {
-                let orderNum = data.order_number || '';
-
-                if (orderNum) {
-                    if (isRestaurant && kotPrintWin) {
-                        let categories = Object.keys(categoryGroups);
-                        let timestamp = new Date().toLocaleTimeString();
-
-                        // Build KOT HTML — one ticket per category with page breaks
-                        let kotHtml = '<!DOCTYPE html><html><head><meta charset="UTF-8">';
-                        kotHtml += '<style>';
-                        kotHtml += '@page { size: 80mm auto; margin: 2mm; }';
-                        kotHtml += 'body { font-family: monospace; font-size: 13px; margin: 2mm; }';
-                        kotHtml += '.ticket { border: 2px solid #000; padding: 8px; margin-bottom: 5px; page-break-after: always; }';
-                        kotHtml += '.ticket:last-child { page-break-after: auto; }';
-                        kotHtml += 'h2 { text-align: center; font-size: 18px; margin: 0 0 4px; letter-spacing: 2px; border-bottom: 2px dashed #000; padding-bottom: 4px; }';
-                        kotHtml += '.section { text-align: center; font-size: 12px; font-weight: bold; background: #000; color: #fff; padding: 3px 4px; margin: 6px 0; }';
-                        kotHtml += '.meta { font-size: 11px; margin: 2px 0; display: flex; justify-content: space-between; }';
-                        kotHtml += '.table-no { font-size: 20px; font-weight: bold; text-align: center; padding: 4px; border: 3px solid #000; margin: 6px 0; }';
-                        kotHtml += 'th { text-align:left; font-size:11px; border-bottom: 2px solid #000; padding-bottom:2px; }';
-                        kotHtml += 'table { width:100%; border-collapse:collapse; margin-top:4px; }';
-                        kotHtml += 'td { padding: 4px 0; font-size: 13px; font-weight: bold; border-bottom: 1px dashed #aaa; }';
-                        kotHtml += '</style></head><body>';
-
-                        categories.forEach(function(catName) {
-                            let catItems = categoryGroups[catName];
-                            kotHtml += '<div class="ticket">';
-                            kotHtml += '<h2>KOT</h2>';
-                            kotHtml += '<div class="section">' + catName + '</div>';
-                            kotHtml += '<div class="meta"><span>Order No:</span><span>' + orderNum + '</span></div>';
-                            kotHtml += '<div class="meta"><span>Time:</span><span>' + timestamp + '</span></div>';
-                            kotHtml += '<div class="table-no">Table: ' + tableLabel + '</div>';
-                            kotHtml += '<table><tr><th>Item</th><th style="text-align:right">Qty</th></tr>';
-                            catItems.forEach(function(item) {
-                                kotHtml += '<tr><td>' + item.name + '</td><td style="text-align:right">' + item.qty + '</td></tr>';
-                            });
-                            kotHtml += '</table></div>';
-                        });
-                        kotHtml += '</body></html>';
-
-                        // Reuse the pre-opened window — avoids popup blocking
-                        kotPrintWin.document.open();
-                        kotPrintWin.document.write(kotHtml);
-                        kotPrintWin.document.close();
-                        kotPrintWin.focus();
-                        kotPrintWin.print();
-                        setTimeout(function() { kotPrintWin.close(); }, 3000);
-                    }
+                if (data.success) {
+                    // Reset the cart and order context after sending to kitchen
+                    cart = {};
+                    currentOrderNumber = null;
+                    currentTableId = null;
+                    currentTableLabel = '';
+                    document.getElementById('order-panel-title').innerText = 'New Order';
+                    document.getElementById('order-context-banner').classList.remove('active');
+                    kitchenBtn.innerHTML = '&#127859; Send to Kitchen';
+                    updateCartUI();
+                    var sel = document.getElementById('table-select');
+                    if (sel) { sel.value = ''; }
                 } else {
-                    if (kotPrintWin) kotPrintWin.close();
+                    kitchenBtn.disabled = false;
+                    kitchenBtn.innerHTML = '&#127859; Send to Kitchen';
+                    alert('Error creating order: ' + (data.error || 'Unknown error'));
                 }
-
-                // Reset the cart and order context after sending to kitchen
-                cart = {};
-                currentOrderNumber = null;
-                currentTableId = null;
-                currentTableLabel = '';
-                document.getElementById('order-panel-title').innerText = 'New Order';
-                document.getElementById('order-context-banner').classList.remove('active');
-                document.getElementById('kitchen-btn').innerHTML = '&#127859; Send to Kitchen';
-                updateCartUI();
-                var sel = document.getElementById('table-select');
-                if (sel) { sel.value = ''; }
             })
-            .catch(function() {
-                if (kotPrintWin) kotPrintWin.close();
+            .catch(function(err) {
+                kitchenBtn.disabled = false;
+                kitchenBtn.innerHTML = '&#127859; Send to Kitchen';
                 alert('Error sending order to kitchen. Please try again.');
             });
         }
@@ -516,7 +628,7 @@
                             let orderHTML = '<div id="order-card-' + order.order_number + '" style="background:#FFF9F8; border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px; transition:opacity 0.3s;">';
                             orderHTML += '<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #E8DDD5; padding-bottom:10px; margin-bottom:10px;">';
                             orderHTML += '<div>';
-                            orderHTML += '<strong style="font-size:1.2rem; display:block;">Order #' + order.order_number + '</strong>';
+                            orderHTML += '<strong style="font-size:1.35rem; font-weight:900; color:var(--text-color); display:block; letter-spacing:0.5px;">Order #' + order.order_number + '</strong>';
                             orderHTML += '<span style="font-size:0.85rem; color:#8A7A6F;">' + (order.created_at || 'Just now') + '</span>';
                             orderHTML += '</div>';
                             orderHTML += '<div style="text-align:right;">';
@@ -536,9 +648,10 @@
                             orderHTML += '</ul>';
                             
                             orderHTML += '<div style="display:flex; gap:8px; flex-wrap:wrap;">';
-                            orderHTML += '<button onclick="loadOrderIntoPanel(\'' + order.order_number + '\', \'' + tableId + '\', \'' + tableNumber + '\')" style="flex:1; min-width:120px; padding:10px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#43; Add Items</button>';
-                            orderHTML += '<button onclick="reprintKOT(\'' + order.order_number + '\')" style="flex:1; min-width:120px; padding:10px; background:#0F3460; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128203; Reprint KOT</button>';
-                            orderHTML += '<button onclick="printBill(\'' + order.order_number + '\')" style="flex:1; min-width:120px; padding:10px; background:#4ECB71; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128176; Print Bill</button>';
+                            orderHTML += '<button onclick="loadOrderIntoPanel(\'' + order.order_number + '\', \'' + tableId + '\', \'' + tableNumber + '\')" style="flex:1; min-width:110px; padding:10px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#43; Add Items</button>';
+                            orderHTML += '<button onclick="openTransferTableModal(\'' + order.order_number + '\', \'' + tableId + '\')" style="flex:1; min-width:120px; padding:10px; background:#6366F1; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;" title="Transfer order to another table">&#128260; Change Table</button>';
+                            orderHTML += '<button onclick="reprintKOT(\'' + order.order_number + '\', this)" style="flex:1; min-width:110px; padding:10px; background:#0F3460; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128203; Reprint KOT</button>';
+                            orderHTML += '<button onclick="printBill(\'' + order.order_number + '\', this)" style="flex:1; min-width:110px; padding:10px; background:#4ECB71; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128176; Print Bill</button>';
                             orderHTML += '</div>';
                             
                             orderHTML += '</div>';
@@ -567,7 +680,7 @@
                             let orderHTML = '<div id="order-card-' + order.order_number + '" style="background:#FFF9F8; border:1px solid var(--border); border-radius:12px; padding:15px; margin-bottom:15px; transition:opacity 0.3s;">';
                             orderHTML += '<div style="display:flex; justify-content:space-between; align-items:flex-start; border-bottom:2px dashed #E8DDD5; padding-bottom:10px; margin-bottom:10px;">';
                             orderHTML += '<div>';
-                            orderHTML += '<strong style="font-size:1.2rem; display:block;">Order #' + order.order_number + '</strong>';
+                            orderHTML += '<strong style="font-size:1.35rem; font-weight:900; color:var(--text-color); display:block; letter-spacing:0.5px;">Order #' + order.order_number + '</strong>';
                             orderHTML += '<span style="font-size:0.85rem; color:#8A7A6F;">' + (order.created_at || 'Just now') + '</span>';
                             orderHTML += '</div>';
                             orderHTML += '<div style="text-align:right;">';
@@ -587,9 +700,10 @@
                             orderHTML += '</ul>';
                             
                             orderHTML += '<div style="display:flex; gap:8px; flex-wrap:wrap;">';
-                            orderHTML += '<button onclick="loadOrderIntoPanel(\'' + order.order_number + '\', null, null)" style="flex:1; min-width:120px; padding:10px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#43; Add Items</button>';
-                            orderHTML += '<button onclick="reprintKOT(\'' + order.order_number + '\')" style="flex:1; min-width:120px; padding:10px; background:#0F3460; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128203; Reprint KOT</button>';
-                            orderHTML += '<button onclick="printBill(\'' + order.order_number + '\')" style="flex:1; min-width:120px; padding:10px; background:#4ECB71; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128176; Print Bill</button>';
+                            orderHTML += '<button onclick="loadOrderIntoPanel(\'' + order.order_number + '\', null, null)" style="flex:1; min-width:110px; padding:10px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#43; Add Items</button>';
+                            orderHTML += '<button onclick="openTransferTableModal(\'' + order.order_number + '\', null)" style="flex:1; min-width:120px; padding:10px; background:#6366F1; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;" title="Transfer order to another table">&#128260; Change Table</button>';
+                            orderHTML += '<button onclick="reprintKOT(\'' + order.order_number + '\', this)" style="flex:1; min-width:110px; padding:10px; background:#0F3460; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128203; Reprint KOT</button>';
+                            orderHTML += '<button onclick="printBill(\'' + order.order_number + '\', this)" style="flex:1; min-width:110px; padding:10px; background:#4ECB71; color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer; transition:0.2s;">&#128176; Print Bill</button>';
                             orderHTML += '</div>';
                             
                             orderHTML += '</div>';
@@ -604,63 +718,131 @@
             });
         }
 
-        function printBill(orderNum) {
-            var printWin = window.open('', '_blank', 'width=400,height=600');
-            if (!printWin) {
-                alert('Please allow popups to print the bill.');
-                return;
+        function printBill(orderNum, btn) {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '&#9203; Printing...';
             }
-            printWin.document.write('<html><body style="font-family:sans-serif;padding:20px;">Loading bill...</body></html>');
-            fetch('/bill/' + orderNum + '/')
-            .then(res => res.text())
-            .then(html => {
-                printWin.document.open();
-                printWin.document.write(html);
-                printWin.document.close();
-                printWin.focus();
-                printWin.print();
-                setTimeout(function() { printWin.close(); }, 3000);
 
-                // Mark order as invoiced
-                fetch('/api/invoice-order/' + orderNum + '/', { method: 'POST' })
-                .then(res => res.json())
-                .then(data => {
-                    if (data.success) {
-                        // Remove this specific order card from the list
-                        var card = document.getElementById('order-card-' + orderNum);
-                        if (card) {
-                            card.style.opacity = '0';
-                            setTimeout(function() {
-                                card.remove();
-                                // If no more order cards remain, show the empty state
-                                var list = document.getElementById('table-orders-list');
-                                var remaining = list.querySelectorAll('[id^="order-card-"]');
-                                if (remaining.length === 0) {
-                                    list.innerHTML = '<div style="opacity:0.6; padding:20px; text-align:center;">No active orders for this table.</div>';
-                                }
-                            }, 300);
-                        }
+            // Single network print job to CASH printer (192.168.1.10)
+            fetch('/api/invoice-order/' + orderNum + '/', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    var card = document.getElementById('order-card-' + orderNum);
+                    if (card) {
+                        card.style.opacity = '0';
+                        setTimeout(function() {
+                            card.remove();
+                            var list = document.getElementById('table-orders-list');
+                            var remaining = list.querySelectorAll('[id^="order-card-"]');
+                            if (remaining.length === 0) {
+                                list.innerHTML = '<div style="opacity:0.6; padding:20px; text-align:center;">No active orders found.</div>';
+                            }
+                        }, 300);
                     }
-                });
+                } else {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '&#128176; Print Bill';
+                    }
+                    alert(data.error || 'Error printing bill');
+                }
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '&#128176; Print Bill';
+                }
+                alert('Network error printing bill.');
             });
         }
 
-        function reprintKOT(orderNum) {
-            var kotPrintWin = window.open('', '_blank', 'width=400,height=600');
-            if (!kotPrintWin) {
-                alert('Please allow popups to reprint KOT.');
+        function reprintKOT(orderNum, btn) {
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '&#9203; Sending...';
+            }
+
+            // Single network reprint job to station printers
+            fetch('/api/print/kot/' + orderNum + '/', { method: 'POST' })
+            .then(res => res.json())
+            .then(data => {
+                setTimeout(function() {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '&#128203; Reprint KOT';
+                    }
+                }, 1500);
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '&#128203; Reprint KOT';
+                }
+                alert('Network error reprinting KOT.');
+            });
+        }
+
+        let currentTransferOrderNumber = null;
+        let currentTransferOldTableId = null;
+
+        function openTransferTableModal(orderNum, oldTableId) {
+            currentTransferOrderNumber = orderNum;
+            currentTransferOldTableId = oldTableId;
+            document.getElementById('transfer-order-number-display').innerText = '#' + orderNum;
+            var sel = document.getElementById('transfer-new-table-select');
+            if (sel) {
+                sel.value = '';
+                for (var i = 0; i < sel.options.length; i++) {
+                    sel.options[i].disabled = (oldTableId && sel.options[i].value == oldTableId);
+                }
+            }
+            document.getElementById('transfer-table-overlay').classList.add('active');
+        }
+
+        function closeTransferTableModal() {
+            document.getElementById('transfer-table-overlay').classList.remove('active');
+            currentTransferOrderNumber = null;
+            currentTransferOldTableId = null;
+        }
+
+        function executeTableTransfer() {
+            var sel = document.getElementById('transfer-new-table-select');
+            var newTableId = sel ? sel.value : null;
+            if (!newTableId) {
+                alert('Please select a destination table.');
                 return;
             }
-            kotPrintWin.document.write('<html><body style="font-family:sans-serif;padding:20px;">Loading KOT...</body></html>');
-            fetch('/kot/' + orderNum + '/')
-            .then(res => res.text())
-            .then(html => {
-                kotPrintWin.document.open();
-                kotPrintWin.document.write(html);
-                kotPrintWin.document.close();
-                kotPrintWin.focus();
-                kotPrintWin.print();
-                setTimeout(function() { kotPrintWin.close(); }, 3000);
+
+            var btn = document.getElementById('confirm-transfer-btn');
+            btn.disabled = true;
+            btn.innerHTML = '&#9203; Transferring & Notifying Kitchen...';
+
+            fetch('/api/transfer-table/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    order_number: currentTransferOrderNumber,
+                    new_table_id: newTableId
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                btn.disabled = false;
+                btn.innerHTML = 'Confirm Table Transfer';
+                if (data.success) {
+                    closeTransferTableModal();
+                    alert('✓ Table transferred to ' + data.new_table + '!\n✓ Table Transfer Notice has been sent to the Kitchen station printers.');
+                    closeTablesModal();
+                } else {
+                    alert(data.error || 'Failed to transfer table');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                btn.innerHTML = 'Confirm Table Transfer';
+                alert('Network error transferring table.');
             });
         }
     </script>

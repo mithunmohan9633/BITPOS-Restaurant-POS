@@ -16,9 +16,26 @@ class Company(models.Model):
     def __str__(self):
         return self.name
 
+class Printer(models.Model):
+    PRINTER_TYPE_CHOICES = (
+        ('cash_bill', 'Cash / Bill Printer'),
+        ('kot', 'KOT Kitchen/Station Printer'),
+    )
+    company = models.ForeignKey(Company, related_name='printers', on_delete=models.CASCADE)
+    name = models.CharField(max_length=100) # e.g. CASH, KITCHEN, JUICE
+    printer_type = models.CharField(max_length=20, choices=PRINTER_TYPE_CHOICES, default='kot')
+    ip_address = models.CharField(max_length=50, default='192.168.1.100')
+    port = models.IntegerField(default=9100)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.name} ({self.ip_address}:{self.port}) - {self.get_printer_type_display()}"
+
 class Category(models.Model):
     company = models.ForeignKey(Company, related_name='categories', on_delete=models.CASCADE)
     name = models.CharField(max_length=100)
+    printer = models.ForeignKey(Printer, related_name='categories', on_delete=models.SET_NULL, null=True, blank=True)
     def __str__(self):
         return f'{self.name} ({self.company.name})'
 
@@ -28,6 +45,7 @@ class MenuItem(models.Model):
     name = models.CharField(max_length=200)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    image = models.ImageField(upload_to='menu_items/', null=True, blank=True)
     is_available = models.BooleanField(default=True)
     def __str__(self):
         return self.name

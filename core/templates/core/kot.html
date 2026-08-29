@@ -27,7 +27,7 @@
             <h1>KOT</h1>
         </div>
         <div class="meta-info">
-            <div><span>Order No:</span><span>{{ order.order_number }}</span></div>
+            <div><span>Order No:</span><span style="font-weight:900; font-size:1.25rem;">{{ order.order_number }}</span></div>
             <div><span>Table No:</span><span style="font-size:1.4rem">{{ order.table.table_number|default:"N/A" }}</span></div>
             <div><span>Date:</span><span>{{ order.created_at|date:"d/m/Y h:i A" }}</span></div>
         </div>
@@ -44,15 +44,5 @@
     </div>
     {% endfor %}
     <button class="print-btn" onclick="window.print()">Print KOT</button>
-
-    <script>
-        window.onload = function() {
-            window.focus();
-            window.print();
-            setTimeout(function() {
-                window.close();
-            }, 1000);
-        };
-    </script>
 </body>
 </html>

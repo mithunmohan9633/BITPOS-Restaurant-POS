@@ -28,15 +28,17 @@
         .search-actions { display: flex; gap: 10px; align-items: flex-end; }
         .btn-search { padding: 12px 22px; background: var(--primary); color: white; border: none; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer; transition: 0.2s; white-space: nowrap; }
         .btn-search:hover { opacity: 0.9; transform: translateY(-1px); }
-        .btn-clear { padding: 12px 18px; background: transparent; color: var(--muted); border: 2px solid var(--border); border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: 0.2s; text-decoration: none; white-space: nowrap; }
+        .btn-clear { padding: 12px 18px; background: transparent; color: var(--muted); border: 2px solid var(--border); border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: 0.2s; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; }
         .btn-clear:hover { border-color: var(--danger); color: var(--danger); }
+        .btn-refresh { padding: 12px 18px; background: rgba(255,255,255,0.05); color: var(--text); border: 2px solid var(--border); border-radius: 8px; font-weight: 700; font-size: 0.95rem; cursor: pointer; transition: 0.2s; text-decoration: none; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 6px; font-family: 'Outfit', sans-serif; }
+        .btn-refresh:hover { border-color: var(--primary); color: var(--primary); background: rgba(211,140,68,0.1); }
         .results-info { font-size: 0.85rem; color: var(--muted); margin-top: 12px; }
         .results-info span { color: var(--primary); font-weight: 800; }
 
         /* Table */
         table { width: 100%; border-collapse: collapse; background: var(--card); border-radius: 12px; overflow: hidden; }
         th { background: var(--accent); color: var(--text); text-align: left; padding: 15px 20px; font-weight: 800; font-size: 0.8rem; letter-spacing: 1px; text-transform: uppercase; }
-        td { padding: 15px 20px; border-bottom: 1px solid var(--border); }
+        td { padding: 15px 20px; border-bottom: 1px solid var(--border); vertical-align: middle; }
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: rgba(211,140,68,0.05); }
         .order-link { color: var(--primary); font-weight: 800; text-decoration: none; }
@@ -46,6 +48,50 @@
         .badge-upi { background: rgba(99,102,241,0.15); color: var(--purple); }
         .badge-split { background: rgba(211,140,68,0.15); color: var(--primary); }
         .badge-pending { background: rgba(233,69,96,0.15); color: var(--danger); }
+        .badge-invoiced { background: rgba(211,140,68,0.15); color: var(--primary); }
+        .badge-paid { background: rgba(78,203,113,0.15); color: var(--success); }
+
+        .btn-action-pay {
+            padding: 6px 14px; background: var(--success); color: white; border: none;
+            border-radius: 6px; font-weight: 800; font-size: 0.85rem; cursor: pointer;
+            transition: 0.2s; font-family: 'Outfit', sans-serif;
+        }
+        .btn-action-pay:hover:not(:disabled) { background: #3db85e; transform: translateY(-1px); }
+        .btn-action-paid {
+            padding: 6px 14px; background: #0F3460; color: #E8E8E8; border: 1px solid var(--border);
+            border-radius: 6px; font-weight: 800; font-size: 0.85rem; cursor: pointer;
+            transition: 0.2s; font-family: 'Outfit', sans-serif;
+        }
+        .btn-action-paid:hover:not(:disabled) { background: #174b88; color: white; transform: translateY(-1px); }
+        .btn-action-pay:disabled, .btn-action-paid:disabled {
+            background: rgba(255, 255, 255, 0.05) !important;
+            color: var(--muted) !important;
+            border: 1px solid var(--border) !important;
+            cursor: not-allowed !important;
+            opacity: 0.55;
+            transform: none !important;
+        }
+
+        .btn-export-excel {
+            padding: 12px 16px; background: #107C41; color: white; border: none;
+            border-radius: 8px; font-weight: 800; font-size: 0.9rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif; text-decoration: none;
+        }
+        .btn-export-excel:hover {
+            background: #0d6334; transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(16, 124, 65, 0.35);
+        }
+        .btn-export-pdf {
+            padding: 12px 16px; background: #D9381E; color: white; border: none;
+            border-radius: 8px; font-weight: 800; font-size: 0.9rem; cursor: pointer;
+            display: inline-flex; align-items: center; gap: 6px; transition: all 0.2s ease;
+            font-family: 'Outfit', sans-serif; text-decoration: none;
+        }
+        .btn-export-pdf:hover {
+            background: #b52c15; transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(217, 56, 30, 0.35);
+        }
         
         /* Payment Modal Styles */
         .payment-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26,26,46,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s; }
@@ -82,6 +128,7 @@
             <a href="/orders/">Orders</a>
             <a href="/menu/">Menu</a>
             <a href="/tables/">Tables</a>
+            <a href="/printers/">Printers</a>
             <a href="/users/">Staff</a>
             <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
         </div>
@@ -109,6 +156,9 @@
                     <div class="search-actions">
                         <button type="submit" class="btn-search">Search</button>
                         <a href="/orders/" class="btn-clear">Clear</a>
+                        <button type="button" class="btn-refresh" onclick="window.location.reload();" title="Refresh Page">&#8635; Refresh</button>
+                        <button type="button" class="btn-export-excel" onclick="exportOrders('excel')" title="Export orders to Excel (.xlsx)"><span>📗</span> Excel</button>
+                        <button type="button" class="btn-export-pdf" onclick="exportOrders('pdf')" title="Export orders to PDF (.pdf)"><span>📕</span> PDF</button>
                     </div>
                 </div>
                 {% if search or date_from or date_to %}
@@ -118,26 +168,42 @@
         </div>
 
         <table>
-            <tr><th>Order #</th><th>Date &amp; Time</th><th>Amount</th><th>Payment</th><th>Billed By</th><th>Actions</th></tr>
-            {% for order in orders %}
             <tr>
-                <td><a href="/orders/{{ order.order_number }}/" class="order-link">{{ order.order_number }}</a></td>
+                <th>Order #</th>
+                <th>Date &amp; Time</th>
+                <th>Amount</th>
+                <th>Payment / Status</th>
+                <th>Billed By</th>
+                <th>Actions</th>
+            </tr>
+            {% for order in orders %}
+            <tr id="order-row-{{ order.order_number }}">
+                <td><a href="/orders/{{ order.order_number }}/" class="order-link" style="font-weight:900; font-size:1rem; letter-spacing:0.5px;">{{ order.order_number }}</a></td>
                 <td style="color:var(--muted)">{{ order.created_at|date:"d M Y, h:i A" }}</td>
-                <td>
+                <td style="font-weight:800; color:var(--primary); font-size:1.05rem;">&#8377;{{ order.total_amount }}</td>
+                <td id="status-col-{{ order.order_number }}">
                     {% if order.status == 'pending' %}
                         <span class="badge badge-pending">Pending</span>
                     {% elif order.status == 'invoiced' %}
-                        <span class="badge badge-pending" style="background:rgba(211,140,68,0.15); color:var(--primary);">Invoiced</span>
+                        <span class="badge badge-invoiced">Invoiced</span>
+                    {% elif order.status == 'paid' %}
+                        <span class="badge badge-paid">Paid ({{ order.get_payment_method_display }})</span>
                     {% else %}
-                        <span class="badge {% if order.payment_method == 'cash' %}badge-cash{% elif order.payment_method == 'upi' %}badge-upi{% else %}badge-split{% endif %}">{{ order.get_payment_method_display }}</span>
+                        <span class="badge">{{ order.get_status_display }}</span>
                     {% endif %}
                 </td>
                 <td>{{ order.billed_by.username|default:"--" }}</td>
                 <td>
-                    <a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank">View Bill</a>
-                    {% if order.status == 'pending' or order.status == 'invoiced' %}
-                        <button onclick="openPayment('{{ order.order_number }}', {{ order.total_amount }})" style="margin-left:10px; padding:6px 12px; background:var(--success); color:white; border:none; border-radius:6px; font-weight:800; cursor:pointer;">Pay</button>
-                    {% endif %}
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank" style="margin-right:6px;">View Bill</a>
+                        {% if order.status == 'paid' %}
+                            <button disabled class="btn-action-pay" title="Order already paid">Pay</button>
+                            <button disabled class="btn-action-paid" title="Order already paid">Paid &#10003;</button>
+                        {% else %}
+                            <button onclick="openPayment('{{ order.order_number }}', {{ order.total_amount }})" class="btn-action-pay" id="pay-btn-{{ order.order_number }}">Pay</button>
+                            <button onclick="quickMarkPaid('{{ order.order_number }}', {{ order.total_amount }}, this)" class="btn-action-paid" id="paid-btn-{{ order.order_number }}">Paid</button>
+                        {% endif %}
+                    </div>
                 </td>
             </tr>
             {% empty %}
@@ -312,9 +378,90 @@
                 if(data.success) {
                     location.reload();
                 } else {
-                    alert('Error: ' + data.error);
+                    alert('Error: ' + (data.error || 'Failed to complete payment'));
+                }
+            })
+            .catch(err => {
+                alert('Network error completing payment.');
+            });
+        }
+
+        function quickMarkPaid(orderNum, totalAmount, btn) {
+            if (!confirm('Mark order #' + orderNum + ' as Paid (Cash ' + RUPEE + parseFloat(totalAmount).toFixed(2) + ')?')) {
+                return;
+            }
+
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '&#9203; Saving...';
+            }
+            let payBtn = document.getElementById('pay-btn-' + orderNum);
+            if (payBtn) {
+                payBtn.disabled = true;
+            }
+
+            fetch('/api/pay-order/' + orderNum + '/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    payment_method: 'cash',
+                    cash_amount: totalAmount,
+                    upi_amount: 0
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    let statusCol = document.getElementById('status-col-' + orderNum);
+                    if (statusCol) {
+                        statusCol.innerHTML = '<span class="badge badge-paid">Paid (Cash)</span>';
+                    }
+                    if (payBtn) {
+                        payBtn.disabled = true;
+                        payBtn.style.opacity = '0.55';
+                        payBtn.style.cursor = 'not-allowed';
+                    }
+                    if (btn) {
+                        btn.disabled = true;
+                        btn.innerHTML = 'Paid &#10003;';
+                        btn.style.opacity = '0.55';
+                        btn.style.cursor = 'not-allowed';
+                    }
+                } else {
+                    alert(data.error || 'Failed to update payment');
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = 'Paid';
+                    }
+                    if (payBtn) {
+                        payBtn.disabled = false;
+                    }
+                }
+            })
+            .catch(err => {
+                alert('Network error marking order as paid.');
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = 'Paid';
+                }
+                if (payBtn) {
+                    payBtn.disabled = false;
                 }
             });
+        }
+
+        function exportOrders(format) {
+            var dFrom = document.querySelector('input[name="date_from"]').value;
+            var dTo = document.querySelector('input[name="date_to"]').value;
+            var url = '/reports/export/?format=' + encodeURIComponent(format);
+            if (dFrom || dTo) {
+                url += '&period=custom';
+                if (dFrom) url += '&date_from=' + encodeURIComponent(dFrom);
+                if (dTo) url += '&date_to=' + encodeURIComponent(dTo);
+            } else {
+                url += '&period=all';
+            }
+            window.location.href = url;
         }
     </script>
 </body>

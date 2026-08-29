@@ -48,6 +48,7 @@
             <a href="/orders/">Orders</a>
             <a href="/menu/">Menu</a>
             <a href="/tables/">Tables</a>
+            <a href="/printers/">Printers</a>
             <a href="/users/">Staff</a>
             <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
         </div>
@@ -74,13 +75,19 @@
                 <form method="POST">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="add_category">
-                    <input type="text" name="name" placeholder="Category Name (e.g. Hot Drinks)" required>
+                    <input type="text" name="name" placeholder="Category Name (e.g. Non_veg, Drinks)" required>
+                    <select name="printer">
+                        <option value="">-- Assign Station Printer (Optional) --</option>
+                        {% for p in kot_printers %}
+                        <option value="{{ p.id }}">{{ p.name }} ({{ p.ip_address }})</option>
+                        {% endfor %}
+                    </select>
                     <button type="submit" class="btn btn-accent">Add Category</button>
                 </form>
             </div>
             <div class="card">
                 <h2>Create Menu Item</h2>
-                <form method="POST">
+                <form method="POST" enctype="multipart/form-data">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="add_item">
                     <select name="category" required>
@@ -91,6 +98,8 @@
                     </select>
                     <input type="text" name="name" placeholder="Item Name (e.g. Espresso)" required>
                     <input type="number" step="0.01" name="price" placeholder="Price (&#8377;)" required>
+                    <label style="color:var(--muted); font-size:0.85rem; font-weight:600; display:block; margin-top:8px;">Product Image (Optional)</label>
+                    <input type="file" name="image" accept="image/*" style="padding:8px;">
                     <button type="submit" class="btn btn-primary">Add Menu Item</button>
                 </form>
             </div>
@@ -99,18 +108,30 @@
             <div class="card">
                 <h2>Current Menu</h2>
                 {% for cat in categories %}
-                <div class="cat-item">{{ cat.name }}</div>
+                <div class="cat-item" style="display:flex; justify-content:space-between; align-items:center;">
+                    <span>{{ cat.name }}</span>
+                    {% if cat.printer %}
+                    <span style="font-size:0.75rem; background:rgba(211,140,68,0.15); color:var(--primary); padding:3px 8px; border-radius:12px; border:1px solid var(--primary);">{{ cat.printer.name }} ({{ cat.printer.ip_address }})</span>
+                    {% endif %}
+                </div>
                 {% for item in cat.items.all %}
-                <div class="menu-item" style="align-items:center;">
-                    <span>{{ item.name }}</span>
+                <div class="menu-item" style="align-items:center; gap:12px;">
+                    <div style="display:flex; align-items:center; gap:12px;">
+                        {% if item.image %}
+                        <img src="{{ item.image.url }}" alt="{{ item.name }}" style="width:46px; height:46px; object-fit:cover; border-radius:8px; border:1px solid var(--border);">
+                        {% else %}
+                        <div style="width:46px; height:46px; border-radius:8px; background:rgba(255,255,255,0.05); display:flex; align-items:center; justify-content:center; font-size:1.4rem; border:1px solid var(--border);">&#127860;</div>
+                        {% endif %}
+                        <span style="font-weight:600;">{{ item.name }}</span>
+                    </div>
                     <div style="display: flex; align-items: center; gap: 10px;">
                         <span style="font-weight:800;color:var(--primary);margin-right:5px;">&#8377;{{ item.price }}</span>
-                        <button onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ cat.id }}')" style="background:var(--accent);color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Edit</button>
+                        <button onclick="openEditModal('{{ item.id }}', '{{ item.name|escapejs }}', '{{ item.price }}', '{{ cat.id }}')" style="background:var(--accent);color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;">Edit</button>
                         <form method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this item?');">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="delete_item">
                             <input type="hidden" name="item_id" value="{{ item.id }}">
-                            <button type="submit" style="background:#E94560;color:white;border:none;padding:5px 10px;border-radius:4px;cursor:pointer;font-family:'Outfit',sans-serif;">Delete</button>
+                            <button type="submit" style="background:#E94560;color:white;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-family:'Outfit',sans-serif;font-weight:600;">Delete</button>
                         </form>
                     </div>
                 </div>
@@ -128,7 +149,7 @@
         <div class="modal-content">
             <span class="close-btn" onclick="closeEditModal()">&times;</span>
             <h2 style="color:var(--primary);margin-bottom:20px;border-bottom:2px dashed var(--border);padding-bottom:12px;">Edit Menu Item</h2>
-            <form method="POST">
+            <form method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="edit_item">
                 <input type="hidden" name="item_id" id="edit_item_id">
@@ -146,6 +167,9 @@
                 <label style="color:var(--muted);font-size:0.9rem;">Price (&#8377;)</label>
                 <input type="number" step="0.01" name="price" id="edit_price" required>
                 
+                <label style="color:var(--muted);font-size:0.9rem; margin-top:8px; display:block;">Change Product Image (Optional)</label>
+                <input type="file" name="image" accept="image/*" style="padding:8px;">
+
                 <button type="submit" class="btn btn-primary">Save Changes</button>
             </form>
         </div>
