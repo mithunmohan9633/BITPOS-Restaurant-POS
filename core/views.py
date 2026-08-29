@@ -743,11 +743,19 @@ def order_history(request):
     orders = Order.objects.filter(company=company).order_by('-created_at')
 
     search = request.GET.get('search', '').strip()
+    status_filter = request.GET.get('status', '').strip()
     date_from = request.GET.get('date_from', '')
     date_to = request.GET.get('date_to', '')
 
     if search:
         orders = orders.filter(order_number__icontains=search)
+    if status_filter:
+        if status_filter in ['unpaid', 'pay']:
+            orders = orders.exclude(status='paid')
+        elif status_filter == 'paid':
+            orders = orders.filter(status='paid')
+        else:
+            orders = orders.filter(status=status_filter)
     if date_from:
         orders = orders.filter(created_at__date__gte=date_from)
     if date_to:
@@ -760,6 +768,7 @@ def order_history(request):
     return render(request, 'core/order_history.html', {
         'orders': orders,
         'search': search,
+        'status_filter': status_filter,
         'date_from': date_from,
         'date_to': date_to,
         'total_results': orders.count(),
@@ -936,6 +945,15 @@ def export_sales_report(request):
         if date_to:
             orders = orders.filter(created_at__date__lte=date_to)
         date_label = f"{date_from or 'Start'} to {date_to or 'Present'}"
+    
+    status_filter = request.GET.get('status', '').strip()
+    if status_filter:
+        if status_filter in ['unpaid', 'pay']:
+            orders = orders.exclude(status='paid')
+        elif status_filter == 'paid':
+            orders = orders.filter(status='paid')
+        else:
+            orders = orders.filter(status=status_filter)
     
     orders = orders.order_by('-created_at')
     

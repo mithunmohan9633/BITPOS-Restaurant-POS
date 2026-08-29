@@ -192,6 +192,16 @@
                         <label>Order Number</label>
                         <input type="text" name="search" placeholder="e.g. ORD-123456" value="{{ search }}">
                     </div>
+                    <div class="search-field" style="flex: 1.5;">
+                        <label>Payment / Status</label>
+                        <select name="status" style="width: 100%; padding: 12px 14px; border-radius: 8px; border: 2px solid var(--border); background: var(--card); color: var(--text); font-family: 'Outfit', sans-serif; font-size: 0.95rem; font-weight: 600;">
+                            <option value="">All Statuses (Pay &amp; Paid)</option>
+                            <option value="unpaid" {% if status_filter == 'unpaid' or status_filter == 'pay' %}selected{% endif %}>⏳ Unpaid / Pending (Pay)</option>
+                            <option value="paid" {% if status_filter == 'paid' %}selected{% endif %}>✓ Paid (Settled)</option>
+                            <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>📋 Pending Only</option>
+                            <option value="invoiced" {% if status_filter == 'invoiced' %}selected{% endif %}>🧾 Invoiced Only</option>
+                        </select>
+                    </div>
                     <div class="search-field">
                         <label>Date From</label>
                         <input type="date" name="date_from" value="{{ date_from }}">
@@ -208,7 +218,7 @@
                         <button type="button" class="btn-export-pdf" onclick="exportOrders('pdf')" title="Export orders to PDF (.pdf)"><span>📕</span> PDF</button>
                     </div>
                 </div>
-                {% if search or date_from or date_to %}
+                {% if search or status_filter or date_from or date_to %}
                 <div class="results-info">Showing <span>{{ total_results }}</span> result{{ total_results|pluralize }} for your filter</div>
                 {% endif %}
             </form>
@@ -661,6 +671,8 @@
         function exportOrders(format) {
             var dFrom = document.querySelector('input[name="date_from"]').value;
             var dTo = document.querySelector('input[name="date_to"]').value;
+            var statusSelect = document.querySelector('select[name="status"]');
+            var statusVal = statusSelect ? statusSelect.value : '';
             var url = '/reports/export/?format=' + encodeURIComponent(format);
             if (dFrom || dTo) {
                 url += '&period=custom';
@@ -668,6 +680,9 @@
                 if (dTo) url += '&date_to=' + encodeURIComponent(dTo);
             } else {
                 url += '&period=all';
+            }
+            if (statusVal) {
+                url += '&status=' + encodeURIComponent(statusVal);
             }
             window.location.href = url;
         }
