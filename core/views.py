@@ -495,11 +495,19 @@ def create_order(request):
         order_number_param = data.get('order_number')
 
         if order_number_param:
-            # Append items directly to a specific existing order (used when cashier loads an order into the panel)
+            # Append items directly to a specific existing order
             try:
                 order = Order.objects.get(order_number=order_number_param, company=company)
                 order.total_amount = float(order.total_amount) + total
-                order.status = 'pending'  # Re-open invoiced orders when items are added
+                if action in ['bill', 'take_bill', 'invoice']:
+                    order.status = 'invoiced'
+                elif action in ['checkout', 'pay', 'paid']:
+                    order.status = 'paid'
+                    order.payment_method = payment_method
+                    order.cash_amount = cash_amount if cash_amount > 0 else (float(order.total_amount) if payment_method == 'cash' else 0)
+                    order.upi_amount = upi_amount if upi_amount > 0 else (float(order.total_amount) if payment_method == 'upi' else 0)
+                else:
+                    order.status = 'pending'
                 order.save()
             except Order.DoesNotExist:
                 return JsonResponse({'error': 'Order not found'}, status=404)
@@ -525,7 +533,18 @@ def create_order(request):
                     table=table
                 )
         else:
-            status = 'paid' if action == 'checkout' else 'pending'
+            if action in ['checkout', 'pay', 'paid']:
+                status = 'paid'
+                if cash_amount == 0 and upi_amount == 0:
+                    if payment_method == 'cash':
+                        cash_amount = total
+                    elif payment_method == 'upi':
+                        upi_amount = total
+            elif action in ['bill', 'take_bill', 'invoice']:
+                status = 'invoiced'
+            else:
+                status = 'pending'
+
             order = Order.objects.create(
                 company=company,
                 status=status,
@@ -558,8 +577,8 @@ def create_order(request):
             oi.is_printed = True
             oi.save()
 
-        # If direct checkout, also send tax invoice to CASH printer
-        if action == 'checkout':
+        # If billing or checkout, also send tax invoice to CASH printer
+        if action in ['checkout', 'bill', 'take_bill', 'invoice', 'pay', 'paid']:
             bill_results = print_bill_for_order(order, synchronous=False)
 
         return JsonResponse({
@@ -729,12 +748,20 @@ def order_history(request):
     if date_to:
         orders = orders.filter(created_at__date__lte=date_to)
 
+    menu_items = MenuItem.objects.filter(company=company, is_available=True).select_related('category').order_by('category__name', 'name')
+    tables = Table.objects.filter(company=company).order_by('table_number')
+    categories = Category.objects.filter(company=company).order_by('name')
+
     return render(request, 'core/order_history.html', {
         'orders': orders,
         'search': search,
         'date_from': date_from,
         'date_to': date_to,
         'total_results': orders.count(),
+        'menu_items': menu_items,
+        'tables': tables,
+        'categories': categories,
+        'company': company,
     })
 
 

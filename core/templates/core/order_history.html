@@ -92,6 +92,48 @@
             background: #b52c15; transform: translateY(-1px);
             box-shadow: 0 4px 12px rgba(217, 56, 30, 0.35);
         }
+
+        .btn-create-order {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-family: 'Outfit', sans-serif;
+            box-shadow: 0 4px 12px rgba(211,140,68,0.35);
+            transition: 0.2s;
+        }
+        .btn-create-order:hover {
+            opacity: 0.95;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(211,140,68,0.45);
+        }
+
+        .btn-action-add {
+            padding: 6px 12px;
+            background: #6366F1;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: 0.2s;
+            font-family: 'Outfit', sans-serif;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .btn-action-add:hover {
+            background: #4f51d8;
+            transform: translateY(-1px);
+        }
         
         /* Payment Modal Styles */
         .payment-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(26,26,46,0.9); display: flex; justify-content: center; align-items: center; z-index: 1000; opacity: 0; visibility: hidden; transition: 0.3s; }
@@ -134,7 +176,12 @@
         </div>
     </header>
     <div class="container">
-        <h2>Order History</h2>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:15px;">
+            <h2 style="margin:0;">Order History</h2>
+            <button type="button" onclick="openNewOrderModal()" class="btn-create-order" title="Create a new order and take bill">
+                <span>➕</span> Create New Order
+            </button>
+        </div>
 
         <!-- Search Panel -->
         <div class="search-panel">
@@ -180,7 +227,7 @@
             <tr id="order-row-{{ order.order_number }}">
                 <td><a href="/orders/{{ order.order_number }}/" class="order-link" style="font-weight:900; font-size:1rem; letter-spacing:0.5px;">{{ order.order_number }}</a></td>
                 <td style="color:var(--muted)">{{ order.created_at|date:"d M Y, h:i A" }}</td>
-                <td style="font-weight:800; color:var(--primary); font-size:1.05rem;">&#8377;{{ order.total_amount }}</td>
+                <td style="font-weight:800; color:var(--primary); font-size:1.05rem;" id="amount-col-{{ order.order_number }}">&#8377;{{ order.total_amount }}</td>
                 <td id="status-col-{{ order.order_number }}">
                     {% if order.status == 'pending' %}
                         <span class="badge badge-pending">Pending</span>
@@ -195,7 +242,8 @@
                 <td>{{ order.billed_by.username|default:"--" }}</td>
                 <td>
                     <div style="display:flex; align-items:center; gap:8px;">
-                        <a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank" style="margin-right:6px;">View Bill</a>
+                        <a href="/bill/{{ order.order_number }}/" class="order-link" target="_blank" style="margin-right:4px;">View Bill</a>
+                        <button type="button" onclick="openAddProductModal('{{ order.order_number }}', {{ order.total_amount }})" class="btn-action-add" title="Add items to this order and take bill"><span>&#43;</span> Add Product</button>
                         {% if order.status == 'paid' %}
                             <button disabled class="btn-action-pay" title="Order already paid">Pay</button>
                             <button disabled class="btn-action-paid" title="Order already paid">Paid &#10003;</button>
@@ -251,6 +299,159 @@
 
             <button class="confirm-payment-btn" id="confirm-payment-btn" disabled onclick="confirmPayment()">Select a Payment Method</button>
             <button class="cancel-payment" onclick="closePayment()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Add Product to Existing Order Modal -->
+    <div class="payment-overlay" id="add-product-overlay" style="z-index: 1050;">
+        <div class="payment-modal" style="width: 540px; max-height: 85vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px dashed var(--border); padding-bottom:10px;">
+                <h2 style="margin:0; font-size:1.3rem; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                    <span>➕</span> Add Product to Order
+                </h2>
+                <button onclick="closeAddProductModal()" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#C96459;">&times;</button>
+            </div>
+            
+            <div style="display:flex; justify-content:space-between; align-items:center; background:var(--card); padding:12px 15px; border-radius:8px; margin-bottom:15px; border:1px solid var(--border);">
+                <div>
+                    <span style="color:var(--muted); font-size:0.8rem; display:block; text-transform:uppercase; letter-spacing:0.5px;">Order Number</span>
+                    <strong id="add-prod-order-num" style="color:var(--primary); font-size:1.2rem; font-weight:900;">#ORD-XXXXXX</strong>
+                </div>
+                <div style="text-align:right;">
+                    <span style="color:var(--muted); font-size:0.8rem; display:block; text-transform:uppercase; letter-spacing:0.5px;">Current Total</span>
+                    <strong id="add-prod-curr-total" style="color:var(--text); font-size:1.2rem; font-weight:900;">&#8377;0.00</strong>
+                </div>
+            </div>
+
+            <!-- Product Selection Row -->
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Select Menu Item</label>
+                <div style="display:flex; gap:8px;">
+                    <select id="add-prod-item-select" style="flex:1; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
+                        <option value="">-- Choose Item to Add --</option>
+                        {% for item in menu_items %}
+                        <option value="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
+                            {{ item.name }} (&#8377;{{ item.price }}) {% if item.category %}- {{ item.category.name }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" id="add-prod-item-qty" value="1" min="1" max="99" style="width:70px; padding:10px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; text-align:center; color:var(--text); background:var(--card); font-weight:800;">
+                    <button type="button" onclick="addItemToAddList()" style="padding:10px 16px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">+ Add</button>
+                </div>
+            </div>
+
+            <!-- Items Queue List -->
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Items to Append</label>
+                <div id="add-prod-items-list" style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:80px; max-height:160px; overflow-y:auto;">
+                    <div style="color:var(--muted); text-align:center; padding:15px; font-size:0.9rem;">Select item above and click "+ Add"</div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(211,140,68,0.1); border:1px solid var(--primary); padding:12px 15px; border-radius:8px; margin-bottom:20px;">
+                <span style="font-weight:700;">New Estimated Grand Total:</span>
+                <strong id="add-prod-new-total" style="color:var(--primary); font-size:1.3rem; font-weight:900;">&#8377;0.00</strong>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button type="button" id="btn-add-and-bill" onclick="submitAddProduct('bill')" style="padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:800; font-size:1.05rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>🖨️</span> Add Product &amp; Take Bill
+                </button>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="submitAddProduct('pay')" style="flex:1; padding:12px; background:#0F3460; color:white; border:1px solid var(--border); border-radius:8px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                        💰 Add &amp; Mark Paid
+                    </button>
+                    <button type="button" onclick="submitAddProduct('kitchen')" style="flex:1; padding:12px; background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:8px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                        🍳 Add &amp; Send KOT
+                    </button>
+                </div>
+            </div>
+            
+            <button onclick="closeAddProductModal()" style="width:100%; padding:10px; background:transparent; border:none; color:var(--muted); font-weight:700; font-size:0.9rem; cursor:pointer; margin-top:8px;">
+                Cancel
+            </button>
+        </div>
+    </div>
+
+    <!-- Create New Order & Take Bill Modal -->
+    <div class="payment-overlay" id="new-order-overlay" style="z-index: 1050;">
+        <div class="payment-modal" style="width: 600px; max-height: 90vh; overflow-y: auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px dashed var(--border); padding-bottom:10px;">
+                <h2 style="margin:0; font-size:1.35rem; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                    <span>✨</span> Create New Order &amp; Take Bill
+                </h2>
+                <button onclick="closeNewOrderModal()" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#C96459;">&times;</button>
+            </div>
+
+            <!-- Table & Payment Mode Selection -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:15px;">
+                <div>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Table (Optional)</label>
+                    <select id="new-order-table-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
+                        <option value="">-- Direct Sale / Takeaway --</option>
+                        {% for table in tables %}
+                        <option value="{{ table.id }}">Table {{ table.table_number }} (Cap: {{ table.seating_capacity }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Payment Mode</label>
+                    <select id="new-order-payment-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
+                        <option value="cash">Cash</option>
+                        <option value="upi">UPI</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Add Item Row -->
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Select Menu Items</label>
+                <div style="display:flex; gap:8px;">
+                    <select id="new-order-item-select" style="flex:1; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
+                        <option value="">-- Choose Item --</option>
+                        {% for item in menu_items %}
+                        <option value="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
+                            {{ item.name }} (&#8377;{{ item.price }}) {% if item.category %}- {{ item.category.name }}{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" id="new-order-item-qty" value="1" min="1" max="99" style="width:70px; padding:10px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; text-align:center; color:var(--text); background:var(--card); font-weight:800;">
+                    <button type="button" onclick="addNewOrderItem()" style="padding:10px 18px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">+ Add</button>
+                </div>
+            </div>
+
+            <!-- Selected Order Items Cart Table -->
+            <div style="margin-bottom:15px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Order Items</label>
+                <div id="new-order-items-list" style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:100px; max-height:200px; overflow-y:auto;">
+                    <div style="color:var(--muted); text-align:center; padding:25px; font-size:0.9rem;">No items added yet. Select an item above and click "+ Add".</div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(78,203,113,0.1); border:1px solid var(--success); padding:12px 18px; border-radius:8px; margin-bottom:20px;">
+                <span style="font-weight:700; font-size:1.05rem;">Grand Total:</span>
+                <strong id="new-order-grand-total" style="color:var(--success); font-size:1.5rem; font-weight:900;">&#8377;0.00</strong>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex; flex-direction:column; gap:10px;">
+                <button type="button" id="btn-create-and-bill" onclick="submitNewOrder('bill')" style="padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:800; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>🖨️</span> Create Order &amp; Take Bill
+                </button>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="submitNewOrder('checkout')" style="flex:1; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                        💰 Create &amp; Pay
+                    </button>
+                    <button type="button" onclick="submitNewOrder('kitchen')" style="flex:1; padding:12px; background:#0F3460; color:white; border:1px solid var(--border); border-radius:8px; font-weight:800; font-size:0.95rem; cursor:pointer;">
+                        🍳 Create &amp; Send to Kitchen
+                    </button>
+                </div>
+            </div>
+
+            <button onclick="closeNewOrderModal()" style="width:100%; padding:10px; background:transparent; border:none; color:var(--muted); font-weight:700; font-size:0.9rem; cursor:pointer; margin-top:8px;">
+                Cancel
+            </button>
         </div>
     </div>
 
@@ -462,6 +663,293 @@
                 url += '&period=all';
             }
             window.location.href = url;
+        }
+
+        // ==========================================
+        // 1. ADD PRODUCT TO EXISTING ORDER
+        // ==========================================
+        let currentAddProductOrderNum = null;
+        let currentAddProductBaseTotal = 0;
+        let addProductItemsQueue = [];
+
+        function openAddProductModal(orderNum, baseTotal) {
+            currentAddProductOrderNum = orderNum;
+            currentAddProductBaseTotal = parseFloat(baseTotal) || 0;
+            addProductItemsQueue = [];
+            
+            document.getElementById('add-prod-order-num').innerText = '#' + orderNum;
+            document.getElementById('add-prod-curr-total').innerText = RUPEE + currentAddProductBaseTotal.toFixed(2);
+            document.getElementById('add-prod-item-select').value = '';
+            document.getElementById('add-prod-item-qty').value = '1';
+            
+            renderAddProductQueue();
+            document.getElementById('add-product-overlay').classList.add('active');
+        }
+
+        function closeAddProductModal() {
+            document.getElementById('add-product-overlay').classList.remove('active');
+            currentAddProductOrderNum = null;
+            addProductItemsQueue = [];
+        }
+
+        function addItemToAddList() {
+            var sel = document.getElementById('add-prod-item-select');
+            var qtyInput = document.getElementById('add-prod-item-qty');
+            var opt = sel.options[sel.selectedIndex];
+            
+            if (!sel.value) {
+                alert('Please select a menu item to add.');
+                return;
+            }
+            var qty = parseInt(qtyInput.value) || 1;
+            if (qty < 1) qty = 1;
+            
+            var itemId = sel.value;
+            var itemName = opt.getAttribute('data-name');
+            var itemPrice = parseFloat(opt.getAttribute('data-price')) || 0;
+            
+            var existing = addProductItemsQueue.find(i => i.id === itemId);
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                addProductItemsQueue.push({
+                    id: itemId,
+                    name: itemName,
+                    price: itemPrice,
+                    qty: qty
+                });
+            }
+            
+            sel.value = '';
+            qtyInput.value = '1';
+            renderAddProductQueue();
+        }
+
+        function removeAddProductItem(idx) {
+            addProductItemsQueue.splice(idx, 1);
+            renderAddProductQueue();
+        }
+
+        function renderAddProductQueue() {
+            var listEl = document.getElementById('add-prod-items-list');
+            var newTotalEl = document.getElementById('add-prod-new-total');
+            
+            if (addProductItemsQueue.length === 0) {
+                listEl.innerHTML = '<div style="color:var(--muted); text-align:center; padding:15px; font-size:0.9rem;">Select item above and click "+ Add"</div>';
+                newTotalEl.innerText = RUPEE + currentAddProductBaseTotal.toFixed(2);
+                return;
+            }
+            
+            var html = '';
+            var additionalTotal = 0;
+            addProductItemsQueue.forEach((item, idx) => {
+                var lineTotal = item.price * item.qty;
+                additionalTotal += lineTotal;
+                html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px dashed var(--border); font-size:0.9rem;">';
+                html += '<span><strong>' + item.qty + 'x</strong> ' + item.name + '</span>';
+                html += '<div style="display:flex; align-items:center; gap:10px;">';
+                html += '<strong style="color:var(--primary);">' + RUPEE + lineTotal.toFixed(2) + '</strong>';
+                html += '<button type="button" onclick="removeAddProductItem(' + idx + ')" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-weight:800; font-size:1rem;">&times;</button>';
+                html += '</div></div>';
+            });
+            listEl.innerHTML = html;
+            var finalTotal = currentAddProductBaseTotal + additionalTotal;
+            newTotalEl.innerText = RUPEE + finalTotal.toFixed(2);
+        }
+
+        function submitAddProduct(action) {
+            if (addProductItemsQueue.length === 0) {
+                alert('Please add at least one product before proceeding.');
+                return;
+            }
+            
+            var addItems = addProductItemsQueue.map(i => ({ id: i.id, qty: i.qty }));
+            var addTotal = addProductItemsQueue.reduce((acc, i) => acc + (i.price * i.qty), 0);
+            
+            var btn = document.getElementById('btn-add-and-bill');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '&#9203; Processing &amp; Taking Bill...';
+            }
+            
+            fetch('/api/create-order/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    order_number: currentAddProductOrderNum,
+                    items: addItems,
+                    total: addTotal,
+                    action: action,
+                    payment_method: 'cash',
+                    cash_amount: 0,
+                    upi_amount: 0
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    closeAddProductModal();
+                    if (action === 'bill' || action === 'checkout') {
+                        window.open('/bill/' + currentAddProductOrderNum + '/', '_blank');
+                    }
+                    alert('✓ Products added to Order #' + currentAddProductOrderNum + ' successfully!');
+                    location.reload();
+                } else {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>🖨️</span> Add Product &amp; Take Bill';
+                    }
+                    alert(data.error || 'Failed to add products to order');
+                }
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🖨️</span> Add Product &amp; Take Bill';
+                }
+                alert('Network error adding product to order.');
+            });
+        }
+
+
+        // ==========================================
+        // 2. CREATE NEW ORDER & TAKE BILL
+        // ==========================================
+        let newOrderCart = [];
+
+        function openNewOrderModal() {
+            newOrderCart = [];
+            document.getElementById('new-order-table-select').value = '';
+            document.getElementById('new-order-payment-select').value = 'cash';
+            document.getElementById('new-order-item-select').value = '';
+            document.getElementById('new-order-item-qty').value = '1';
+            renderNewOrderCart();
+            document.getElementById('new-order-overlay').classList.add('active');
+        }
+
+        function closeNewOrderModal() {
+            document.getElementById('new-order-overlay').classList.remove('active');
+            newOrderCart = [];
+        }
+
+        function addNewOrderItem() {
+            var sel = document.getElementById('new-order-item-select');
+            var qtyInput = document.getElementById('new-order-item-qty');
+            var opt = sel.options[sel.selectedIndex];
+            
+            if (!sel.value) {
+                alert('Please select a menu item to add.');
+                return;
+            }
+            var qty = parseInt(qtyInput.value) || 1;
+            if (qty < 1) qty = 1;
+            
+            var itemId = sel.value;
+            var itemName = opt.getAttribute('data-name');
+            var itemPrice = parseFloat(opt.getAttribute('data-price')) || 0;
+            
+            var existing = newOrderCart.find(i => i.id === itemId);
+            if (existing) {
+                existing.qty += qty;
+            } else {
+                newOrderCart.push({
+                    id: itemId,
+                    name: itemName,
+                    price: itemPrice,
+                    qty: qty
+                });
+            }
+            
+            sel.value = '';
+            qtyInput.value = '1';
+            renderNewOrderCart();
+        }
+
+        function removeNewOrderItem(idx) {
+            newOrderCart.splice(idx, 1);
+            renderNewOrderCart();
+        }
+
+        function renderNewOrderCart() {
+            var listEl = document.getElementById('new-order-items-list');
+            var totalEl = document.getElementById('new-order-grand-total');
+            
+            if (newOrderCart.length === 0) {
+                listEl.innerHTML = '<div style="color:var(--muted); text-align:center; padding:25px; font-size:0.9rem;">No items added yet. Select an item above and click "+ Add".</div>';
+                totalEl.innerText = RUPEE + '0.00';
+                return;
+            }
+            
+            var html = '';
+            var grandTotal = 0;
+            newOrderCart.forEach((item, idx) => {
+                var lineTotal = item.price * item.qty;
+                grandTotal += lineTotal;
+                html += '<div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed var(--border); font-size:0.95rem;">';
+                html += '<span><strong>' + item.qty + 'x</strong> ' + item.name + '</span>';
+                html += '<div style="display:flex; align-items:center; gap:12px;">';
+                html += '<strong style="color:var(--success);">' + RUPEE + lineTotal.toFixed(2) + '</strong>';
+                html += '<button type="button" onclick="removeNewOrderItem(' + idx + ')" style="background:transparent; border:none; color:var(--danger); cursor:pointer; font-weight:800; font-size:1.1rem;">&times;</button>';
+                html += '</div></div>';
+            });
+            listEl.innerHTML = html;
+            totalEl.innerText = RUPEE + grandTotal.toFixed(2);
+        }
+
+        function submitNewOrder(action) {
+            if (newOrderCart.length === 0) {
+                alert('Please add at least one item to the order.');
+                return;
+            }
+            
+            var tableId = document.getElementById('new-order-table-select').value;
+            var paymentMethod = document.getElementById('new-order-payment-select').value;
+            var total = newOrderCart.reduce((acc, i) => acc + (i.price * i.qty), 0);
+            var orderItems = newOrderCart.map(i => ({ id: i.id, qty: i.qty }));
+            
+            var btn = document.getElementById('btn-create-and-bill');
+            if (btn) {
+                btn.disabled = true;
+                btn.innerHTML = '&#9203; Creating Order &amp; Taking Bill...';
+            }
+            
+            fetch('/api/create-order/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: orderItems,
+                    payment_method: paymentMethod,
+                    cash_amount: (paymentMethod === 'cash' && action === 'checkout') ? total : 0,
+                    upi_amount: (paymentMethod === 'upi' && action === 'checkout') ? total : 0,
+                    total: total,
+                    table_id: tableId || null,
+                    action: action
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    closeNewOrderModal();
+                    if (action === 'bill' || action === 'checkout') {
+                        window.open('/bill/' + data.order_number + '/', '_blank');
+                    }
+                    alert('✓ Order #' + data.order_number + ' created successfully!');
+                    location.reload();
+                } else {
+                    if (btn) {
+                        btn.disabled = false;
+                        btn.innerHTML = '<span>🖨️</span> Create Order &amp; Take Bill';
+                    }
+                    alert(data.error || 'Failed to create order');
+                }
+            })
+            .catch(err => {
+                if (btn) {
+                    btn.disabled = false;
+                    btn.innerHTML = '<span>🖨️</span> Create Order &amp; Take Bill';
+                }
+                alert('Network error creating order.');
+            });
         }
     </script>
 </body>
