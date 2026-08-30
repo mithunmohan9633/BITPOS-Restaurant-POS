@@ -221,7 +221,10 @@ def build_bill_payload(order, line_width: int = 40) -> bytes:
     p.extend(b"-" * line_width + b"\n")
     
     # Table Header
-    header = format_item_row("ITEM", 1, "AMOUNT", line_width).replace("  1x", " QTY")
+    left = "ITEM"
+    right = " QTY    AMOUNT"
+    space_needed = line_width - len(left) - len(right)
+    header = left + (" " * max(1, space_needed)) + right
     p.extend(CMD_BOLD_ON)
     p.extend(header.encode('ascii', errors='ignore') + b"\n")
     p.extend(CMD_BOLD_OFF)

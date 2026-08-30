@@ -67,8 +67,8 @@ class Order(models.Model):
     )
     PAYMENT_CHOICES = (
         ('cash', 'Cash'),
-        ('upi', 'UPI'),
-        ('split', 'Split (Cash + UPI)'),
+        ('card', 'Card / Online'),
+        ('split', 'Split (Cash + Card)'),
     )
     company = models.ForeignKey(Company, related_name='orders', on_delete=models.CASCADE)
     order_number = models.CharField(max_length=20, unique=True, blank=True)
@@ -124,3 +124,12 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.get_role_display()}"
+
+class Expense(models.Model):
+    company = models.ForeignKey(Company, related_name='expenses', on_delete=models.CASCADE)
+    description = models.CharField(max_length=255)
+    amount = models.DecimalField(max_digits=10, decimal_places=2, validators=[MinValueValidator(Decimal('0.01'))])
+    date = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.description} - {self.amount}"

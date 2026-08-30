@@ -16,7 +16,7 @@ from reportlab.platypus import (
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 
 
-def generate_excel_report(company, orders, product_sales, date_label, summary_metrics):
+def generate_excel_report(company, orders, product_sales, date_label, summary_metrics, expenses=None):
     """
     Generates an Excel workbook (.xlsx) containing Summary and Detailed Orders sheets.
     Returns BytesIO object.
@@ -66,6 +66,8 @@ def generate_excel_report(company, orders, product_sales, date_label, summary_me
     
     kpis = [
         ("Total Sales Revenue", summary_metrics.get('total_sales', 0.0), True),
+        ("Total Expenses", summary_metrics.get('total_expenses', 0.0), True),
+        ("Net Revenue", summary_metrics.get('net_revenue', 0.0), True),
         ("Total Orders Count", summary_metrics.get('total_orders', 0), False),
         ("Cash Collections", summary_metrics.get('total_cash', 0.0), True),
         ("UPI Collections", summary_metrics.get('total_upi', 0.0), True),
@@ -182,13 +184,44 @@ def generate_excel_report(company, orders, product_sales, date_label, summary_me
         col_letter = get_column_letter(col[0].column)
         ws_orders.column_dimensions[col_letter].width = min(max(max_len + 3, 12), 40)
 
+    # --- Sheet 3: Expenses Log ---
+    if expenses is not None and expenses.exists():
+        ws_expenses = wb.create_sheet(title="Expenses")
+        ws_expenses.views.sheetView[0].showGridLines = True
+        
+        ws_expenses.append(["Date", "Description", "Amount (₹)"])
+        for cell in ws_expenses[1]:
+            cell.font = header_font
+            cell.fill = navy_header_fill
+            cell.alignment = Alignment(horizontal="left", vertical="center")
+            
+        for exp in expenses:
+            row_idx = ws_expenses.max_row + 1
+            ws_expenses.append([
+                exp.date.strftime('%d-%b-%Y'),
+                exp.description,
+                float(exp.amount)
+            ])
+            for c in range(1, 4):
+                cell = ws_expenses.cell(row=row_idx, column=c)
+                cell.font = normal_font
+                cell.border = thin_border
+                if row_idx % 2 == 0:
+                    cell.fill = alt_row_fill
+            ws_expenses.cell(row=row_idx, column=3).number_format = '₹#,##0.00'
+            
+        for col in ws_expenses.columns:
+            max_len = max(len(str(cell.value or '')) for cell in col)
+            col_letter = get_column_letter(col[0].column)
+            ws_expenses.column_dimensions[col_letter].width = min(max(max_len + 3, 15), 50)
+
     output = io.BytesIO()
     wb.save(output)
     output.seek(0)
     return output
 
 
-def generate_pdf_report(company, orders, product_sales, date_label, summary_metrics):
+def generate_pdf_report(company, orders, product_sales, date_label, summary_metrics, expenses=None):
     """
     Generates a high quality PDF report using ReportLab.
     Returns BytesIO object.
@@ -264,6 +297,8 @@ def generate_pdf_report(company, orders, product_sales, date_label, summary_metr
     
     # 2. KPI Summary Boxes
     total_sales = summary_metrics.get('total_sales', 0.0)
+    total_expenses = summary_metrics.get('total_expenses', 0.0)
+    net_revenue = summary_metrics.get('net_revenue', 0.0)
     total_orders = summary_metrics.get('total_orders', 0)
     total_cash = summary_metrics.get('total_cash', 0.0)
     total_upi = summary_metrics.get('total_upi', 0.0)
@@ -272,10 +307,12 @@ def generate_pdf_report(company, orders, product_sales, date_label, summary_metr
     kpi_data = [
         [
             Paragraph(f"<b>TOTAL SALES</b><br/><font size=12 color='#D38C44'><b>&#8377;{total_sales:,.2f}</b></font>", table_text),
+            Paragraph(f"<b>TOTAL EXPENSES</b><br/><font size=12 color='#E74C3C'><b>&#8377;{total_expenses:,.2f}</b></font>", table_text),
+            Paragraph(f"<b>NET REVENUE</b><br/><font size=12 color='#2ECC71'><b>&#8377;{net_revenue:,.2f}</b></font>", table_text),
             Paragraph(f"<b>TOTAL ORDERS</b><br/><font size=12 color='#16213E'><b>{total_orders}</b></font>", table_text),
-            Paragraph(f"<b>CASH REVENUE</b><br/><font size=12 color='#4ECB71'><b>&#8377;{total_cash:,.2f}</b></font>", table_text),
-            Paragraph(f"<b>UPI REVENUE</b><br/><font size=12 color='#6366F1'><b>&#8377;{total_upi:,.2f}</b></font>", table_text),
-            Paragraph(f"<b>AVG ORDER VALUE</b><br/><font size=12 color='#16213E'><b>&#8377;{avg_order:,.2f}</b></font>", table_text),
+            Paragraph(f"<b>CASH</b><br/><font size=12 color='#4ECB71'><b>&#8377;{total_cash:,.2f}</b></font>", table_text),
+            Paragraph(f"<b>UPI</b><br/><font size=12 color='#6366F1'><b>&#8377;{total_upi:,.2f}</b></font>", table_text),
+            Paragraph(f"<b>AOV</b><br/><font size=12 color='#16213E'><b>&#8377;{avg_order:,.2f}</b></font>", table_text),
         ]
     ]
     
@@ -388,6 +425,42 @@ def generate_pdf_report(company, orders, product_sales, date_label, summary_metr
             
     orders_table.setStyle(TableStyle(orders_style))
     elements.append(orders_table)
+    
+    # 5. Expenses Log Table
+    if expenses is not None and expenses.exists():
+        from reportlab.platypus import PageBreak
+        elements.append(PageBreak())
+        elements.append(Paragraph("Expenses Log", section_heading))
+        
+        expense_data = [[
+            Paragraph("Date", table_header),
+            Paragraph("Description", table_header),
+            Paragraph("Amount (&#8377;)", table_header)
+        ]]
+        
+        for exp in expenses:
+            expense_data.append([
+                Paragraph(exp.date.strftime('%d-%b-%Y'), table_text),
+                Paragraph(exp.description, table_text),
+                Paragraph(f"&#8377;{float(exp.amount):,.2f}", table_text)
+            ])
+            
+        exp_table = RLTable(expense_data, colWidths=[100, 320, 100])
+        exp_style = [
+            ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#0F3460')),
+            ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+            ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#E0E0E0')),
+        ]
+        for i in range(1, len(expense_data)):
+            if i % 2 == 0:
+                exp_style.append(('BACKGROUND', (0, i), (-1, i), colors.HexColor('#FAFAFA')))
+                
+        exp_table.setStyle(TableStyle(exp_style))
+        elements.append(exp_table)
     
     def add_footer(canvas, doc):
         canvas.saveState()

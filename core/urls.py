@@ -11,6 +11,7 @@ urlpatterns = [
     path('menu/', views.manage_menu, name='manage_menu'),
     path('tables/', views.manage_tables, name='manage_tables'),
     path('printers/', views.manage_printers, name='manage_printers'),
+    path('expenses/', views.manage_expenses, name='manage_expenses'),
     path('orders/', views.order_history, name='order_history'),
     path('orders/<str:order_number>/', views.order_detail, name='order_detail'),
     path('kot/<str:order_number>/', views.kot_view, name='kot_view'),

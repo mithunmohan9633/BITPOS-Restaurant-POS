@@ -54,11 +54,21 @@ def logout_view(request):
     return HttpResponseRedirect(reverse('login_view'))
 
 
+from datetime import date
+
 @login_required(login_url='login_view')
 def super_admin_dashboard(request):
     if not request.user.is_superuser:
         return HttpResponseForbidden("Access Denied: Super Admin only.")
     companies = Company.objects.all().order_by('-created_at')
+    
+    # Check expiration dates before rendering
+    today = date.today()
+    for company in companies:
+        if company.valid_until and company.valid_until < today and company.is_active:
+            company.is_active = False
+            company.save()
+            
     admins = UserProfile.objects.filter(role='admin').select_related('user', 'company')
     active_count = companies.filter(is_active=True).count()
     return render(request, 'core/super_admin.html', {
@@ -981,12 +991,32 @@ def export_sales_report(request):
     total_orders_count = orders.count()
     avg_order_value = total_sales / total_orders_count if total_orders_count > 0 else 0
     
+    from .models import Expense
+    expenses = Expense.objects.filter(company=company)
+    if period == 'today':
+        expenses = expenses.filter(date=today)
+    elif period == 'week':
+        expenses = expenses.filter(date__gte=week_start)
+    elif period == 'month':
+        expenses = expenses.filter(date__gte=month_start)
+    elif period == 'year':
+        expenses = expenses.filter(date__gte=year_start)
+    elif period == 'custom' or (date_from and date_to):
+        if date_from:
+            expenses = expenses.filter(date__gte=date_from)
+        if date_to:
+            expenses = expenses.filter(date__lte=date_to)
+            
+    total_expenses = float(expenses.aggregate(total=Sum('amount'))['total'] or 0)
+    
     summary_metrics = {
         'total_sales': total_sales,
         'total_orders': total_orders_count,
         'total_cash': total_cash,
         'total_upi': total_upi,
-        'avg_order_value': avg_order_value
+        'avg_order_value': avg_order_value,
+        'total_expenses': total_expenses,
+        'net_revenue': total_sales - total_expenses
     }
     
     product_sales = OrderItem.objects.filter(
@@ -1000,12 +1030,12 @@ def export_sales_report(request):
     company_slug = "".join([c if c.isalnum() else "_" for c in company.name])
     
     if format_type == 'pdf':
-        pdf_buffer = generate_pdf_report(company, orders, product_sales, date_label, summary_metrics)
+        pdf_buffer = generate_pdf_report(company, orders, product_sales, date_label, summary_metrics, expenses=expenses)
         response = HttpResponse(pdf_buffer.getvalue(), content_type='application/pdf')
         response['Content-Disposition'] = f'attachment; filename="{company_slug}_Report_{timestamp_str}.pdf"'
         return response
     else:
-        excel_buffer = generate_excel_report(company, orders, product_sales, date_label, summary_metrics)
+        excel_buffer = generate_excel_report(company, orders, product_sales, date_label, summary_metrics, expenses=expenses)
         response = HttpResponse(
             excel_buffer.getvalue(),
             content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -1179,3 +1209,31 @@ def api_db_status(request):
         'companies': list(Company.objects.values('id', 'name')),
     })
 
+@login_required(login_url='login_view')
+def manage_expenses(request):
+    company = request.user.profile.company
+    # Only allow store admins to manage expenses
+    if request.user.profile.role != 'admin':
+        return HttpResponseForbidden("Access Denied: Store Admin only.")
+        
+    from .models import Expense
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'add_expense':
+            description = request.POST.get('description')
+            amount = request.POST.get('amount')
+            if description and amount:
+                Expense.objects.create(company=company, description=description, amount=amount)
+                messages.success(request, 'Expense added successfully.')
+        elif action == 'delete_expense':
+            expense_id = request.POST.get('expense_id')
+            try:
+                Expense.objects.get(id=expense_id, company=company).delete()
+                messages.success(request, 'Expense deleted.')
+            except Expense.DoesNotExist:
+                messages.error(request, 'Expense not found.')
+        return redirect('manage_expenses')
+        
+    expenses = Expense.objects.filter(company=company).order_by('-date', '-id')
+    return render(request, 'core/manage_expenses.html', {'expenses': expenses})

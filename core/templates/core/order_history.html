@@ -164,7 +164,7 @@
 </head>
 <body>
     <header>
-        <h1>BITPOS</h1>
+        <h1><img src="/static/core/images/logo.png" alt="BITPOS" style="height: 50px; vertical-align: middle;"></h1>
         <div class="nav-links">
             <a href="/sales/">Sales</a>
             <a href="/orders/">Orders</a>
@@ -172,6 +172,7 @@
             <a href="/tables/">Tables</a>
             <a href="/printers/">Printers</a>
             <a href="/users/">Staff</a>
+            <a href="/expenses/">Expenses</a>
             <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
         </div>
     </header>
@@ -287,8 +288,8 @@
                 </div>
                 <div class="payment-method" id="method-upi" onclick="toggleMethod('upi')">
                     <div class="method-check" id="check-upi"></div>
-                    <div class="method-icon">&#128241;</div>
-                    <div class="method-name">UPI</div>
+                    <div class="method-icon">&#128179;</div>
+                    <div class="method-name">Card / Online</div>
                 </div>
             </div>
 
@@ -605,68 +606,10 @@
         }
 
         function quickMarkPaid(orderNum, totalAmount, btn) {
-            if (!confirm('Mark order #' + orderNum + ' as Paid (Cash ' + RUPEE + parseFloat(totalAmount).toFixed(2) + ')?')) {
-                return;
-            }
-
-            if (btn) {
-                btn.disabled = true;
-                btn.innerHTML = '&#9203; Saving...';
-            }
-            let payBtn = document.getElementById('pay-btn-' + orderNum);
-            if (payBtn) {
-                payBtn.disabled = true;
-            }
-
-            fetch('/api/pay-order/' + orderNum + '/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    payment_method: 'cash',
-                    cash_amount: totalAmount,
-                    upi_amount: 0
-                })
-            })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    let statusCol = document.getElementById('status-col-' + orderNum);
-                    if (statusCol) {
-                        statusCol.innerHTML = '<span class="badge badge-paid">Paid (Cash)</span>';
-                    }
-                    if (payBtn) {
-                        payBtn.disabled = true;
-                        payBtn.style.opacity = '0.55';
-                        payBtn.style.cursor = 'not-allowed';
-                    }
-                    if (btn) {
-                        btn.disabled = true;
-                        btn.innerHTML = 'Paid &#10003;';
-                        btn.style.opacity = '0.55';
-                        btn.style.cursor = 'not-allowed';
-                    }
-                } else {
-                    alert(data.error || 'Failed to update payment');
-                    if (btn) {
-                        btn.disabled = false;
-                        btn.innerHTML = 'Paid';
-                    }
-                    if (payBtn) {
-                        payBtn.disabled = false;
-                    }
-                }
-            })
-            .catch(err => {
-                alert('Network error marking order as paid.');
-                if (btn) {
-                    btn.disabled = false;
-                    btn.innerHTML = 'Paid';
-                }
-                if (payBtn) {
-                    payBtn.disabled = false;
-                }
-            });
+            // Re-route to the split payment modal instead of assuming 100% cash
+            openPayment(orderNum, totalAmount);
         }
+
 
         function exportOrders(format) {
             var dFrom = document.querySelector('input[name="date_from"]').value;
@@ -984,4 +927,4 @@
         }
     </script>
 </body>
-</html>
+</html>
