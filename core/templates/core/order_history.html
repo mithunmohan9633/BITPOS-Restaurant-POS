@@ -176,13 +176,11 @@
             <a href="/logout/" style="color:#E94560; font-weight:600; text-decoration:none;">Logout</a>
         </div>
     </header>
-    <div class="container">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:15px;">
-            <h2 style="margin:0;">Order History</h2>
-            <button type="button" onclick="openNewOrderModal()" class="btn-create-order" title="Create a new order and take bill">
-                <span>➕</span> Create New Order
-            </button>
-        </div>
+    <div class="container" style="display: flex; gap: 25px; max-width: 1400px; align-items: flex-start;">
+        <div style="flex: 7; min-width: 0;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; flex-wrap:wrap; gap:15px;">
+                <h2 style="margin:0;">Order History</h2>
+            </div>
 
         <!-- Search Panel -->
         <div class="search-panel">
@@ -271,6 +269,93 @@
             </td></tr>
             {% endfor %}
         </table>
+        </div> <!-- end left column -->
+
+        <!-- Right Column: Create New Order -->
+        <div style="flex: 3; min-width: 350px; background: var(--card); border-radius: 20px; padding: 25px; border: 2px solid var(--border); position: sticky; top: 20px; max-height: calc(100vh - 40px); overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.2);">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px dashed var(--border); padding-bottom:10px;">
+                <h2 style="margin:0; font-size:1.35rem; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                    <span>✨</span> Create New Order
+                </h2>
+            </div>
+
+            <!-- Table, Order Type & Payment Mode Selection -->
+            <div style="display:flex; flex-direction: column; gap:12px; margin-bottom:20px;">
+                <div>
+                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Table</label>
+                    <select id="new-order-table-select" onchange="autoSetOrderType(this.value)" style="width:100%; padding:12px 14px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--bg);">
+                        <option value="">-- No Table (Takeaway) --</option>
+                        {% for table in tables %}
+                        <option value="{{ table.id }}">Table {{ table.table_number }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div style="display:flex; gap:10px;">
+                    <div style="flex:1;">
+                        <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Order Type</label>
+                        <select id="new-order-type-select" style="width:100%; padding:12px 14px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--bg);">
+                            <option value="parcel">📦 Parcel</option>
+                            <option value="dine_in">🍽️ Dine-in</option>
+                        </select>
+                    </div>
+                    <div style="flex:1;">
+                        <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Payment</label>
+                        <select id="new-order-payment-select" style="width:100%; padding:12px 14px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--bg);">
+                            <option value="cash">Cash</option>
+                            <option value="upi">UPI</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Item Row -->
+            <div style="margin-bottom:20px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Select Menu Items</label>
+                <div style="display:flex; gap:8px;">
+                    <select id="new-order-item-select" style="flex:1; padding:12px 14px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--bg);">
+                        <option value="">-- Choose Item --</option>
+                        {% for item in menu_items %}
+                        <option value="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
+                            {{ item.name }} (&#8377;{{ item.price }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" id="new-order-item-qty" value="1" min="1" max="99" style="width:70px; padding:12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; text-align:center; color:var(--text); background:var(--bg); font-weight:800;">
+                    <button type="button" onclick="addNewOrderItem()" style="padding:12px 16px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">+ Add</button>
+                </div>
+            </div>
+
+            <!-- Selected Order Items Cart Table -->
+            <div style="margin-bottom:20px;">
+                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Order Items</label>
+                <div id="new-order-items-list" style="background:var(--bg); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:100px; max-height:250px; overflow-y:auto;">
+                    <div style="color:var(--muted); text-align:center; padding:25px; font-size:0.9rem;">No items added yet.<br>Select an item above and click "+ Add".</div>
+                </div>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(78,203,113,0.1); border:1px solid var(--success); padding:15px; border-radius:10px; margin-bottom:20px;">
+                <span style="font-weight:700; font-size:1.1rem;">Grand Total:</span>
+                <strong id="new-order-grand-total" style="color:var(--success); font-size:1.6rem; font-weight:900;">&#8377;0.00</strong>
+            </div>
+
+            <!-- Actions -->
+            <div style="display:flex; flex-direction:column; gap:12px;">
+                <button type="button" id="btn-create-and-bill" onclick="submitNewOrder('bill')" style="padding:16px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:800; font-size:1.15rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
+                    <span>🖨️</span> Create Order &amp; Bill
+                </button>
+                <div style="display:flex; gap:10px;">
+                    <button type="button" onclick="submitNewOrder('checkout')" style="flex:1; padding:14px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer;">
+                        💰 Pay
+                    </button>
+                    <button type="button" onclick="submitNewOrder('kitchen')" style="flex:1; padding:14px; background:#0F3460; color:white; border:1px solid var(--border); border-radius:8px; font-weight:800; font-size:1rem; cursor:pointer;">
+                        🍳 Send to Kitchen
+                    </button>
+                </div>
+                <button type="button" onclick="clearNewOrder()" style="padding:12px; background:transparent; color:var(--muted); border:2px dashed var(--border); border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; margin-top:5px;">
+                    Clear Form
+                </button>
+            </div>
+        </div>
     </div>
 
     <!-- Payment Modal -->
@@ -380,94 +465,6 @@
             </div>
             
             <button onclick="closeAddProductModal()" style="width:100%; padding:10px; background:transparent; border:none; color:var(--muted); font-weight:700; font-size:0.9rem; cursor:pointer; margin-top:8px;">
-                Cancel
-            </button>
-        </div>
-    </div>
-
-    <!-- Create New Order & Take Bill Modal -->
-    <div class="payment-overlay" id="new-order-overlay" style="z-index: 1050;">
-        <div class="payment-modal" style="width: 600px; max-height: 90vh; overflow-y: auto;">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px dashed var(--border); padding-bottom:10px;">
-                <h2 style="margin:0; font-size:1.35rem; color:var(--primary); display:flex; align-items:center; gap:8px;">
-                    <span>✨</span> Create New Order &amp; Take Bill
-                </h2>
-                <button onclick="closeNewOrderModal()" style="background:transparent; border:none; font-size:1.5rem; cursor:pointer; color:#C96459;">&times;</button>
-            </div>
-
-            <!-- Table, Order Type & Payment Mode Selection -->
-            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; margin-bottom:15px;">
-                <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Table</label>
-                    <select id="new-order-table-select" onchange="autoSetOrderType(this.value)" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
-                        <option value="">-- No Table (Takeaway) --</option>
-                        {% for table in tables %}
-                        <option value="{{ table.id }}">Table {{ table.table_number }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Order Type</label>
-                    <select id="new-order-type-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
-                        <option value="parcel">📦 Parcel</option>
-                        <option value="dine_in">🍽️ Dine-in</option>
-                    </select>
-                </div>
-                <div>
-                    <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Payment</label>
-                    <select id="new-order-payment-select" style="width:100%; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
-                        <option value="cash">Cash</option>
-                        <option value="upi">UPI</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- Add Item Row -->
-            <div style="margin-bottom:15px;">
-                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Select Menu Items</label>
-                <div style="display:flex; gap:8px;">
-                    <select id="new-order-item-select" style="flex:1; padding:10px 12px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; color:var(--text); background:var(--card);">
-                        <option value="">-- Choose Item --</option>
-                        {% for item in menu_items %}
-                        <option value="{{ item.id }}" data-name="{{ item.name }}" data-price="{{ item.price }}">
-                            {{ item.name }} (&#8377;{{ item.price }}) {% if item.category %}- {{ item.category.name }}{% endif %}
-                        </option>
-                        {% endfor %}
-                    </select>
-                    <input type="number" id="new-order-item-qty" value="1" min="1" max="99" style="width:70px; padding:10px; border-radius:8px; border:2px solid var(--border); font-family:'Outfit',sans-serif; font-size:0.95rem; text-align:center; color:var(--text); background:var(--card); font-weight:800;">
-                    <button type="button" onclick="addNewOrderItem()" style="padding:10px 18px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; cursor:pointer;">+ Add</button>
-                </div>
-            </div>
-
-            <!-- Selected Order Items Cart Table -->
-            <div style="margin-bottom:15px;">
-                <label style="display:block; font-weight:700; margin-bottom:6px; font-size:0.85rem; color:var(--muted); text-transform:uppercase;">Order Items</label>
-                <div id="new-order-items-list" style="background:var(--card); border:1px solid var(--border); border-radius:8px; padding:10px; min-height:100px; max-height:200px; overflow-y:auto;">
-                    <div style="color:var(--muted); text-align:center; padding:25px; font-size:0.9rem;">No items added yet. Select an item above and click "+ Add".</div>
-                </div>
-            </div>
-
-            <div style="display:flex; justify-content:space-between; align-items:center; background:rgba(78,203,113,0.1); border:1px solid var(--success); padding:12px 18px; border-radius:8px; margin-bottom:20px;">
-                <span style="font-weight:700; font-size:1.05rem;">Grand Total:</span>
-                <strong id="new-order-grand-total" style="color:var(--success); font-size:1.5rem; font-weight:900;">&#8377;0.00</strong>
-            </div>
-
-            <!-- Actions -->
-            <div style="display:flex; flex-direction:column; gap:10px;">
-                <button type="button" id="btn-create-and-bill" onclick="submitNewOrder('bill')" style="padding:14px; background:var(--success); color:white; border:none; border-radius:10px; font-weight:800; font-size:1.1rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:8px;">
-                    <span>🖨️</span> Create Order &amp; Take Bill
-                </button>
-                <div style="display:flex; gap:10px;">
-                    <button type="button" onclick="submitNewOrder('checkout')" style="flex:1; padding:12px; background:var(--primary); color:white; border:none; border-radius:8px; font-weight:800; font-size:0.95rem; cursor:pointer;">
-                        💰 Create &amp; Pay
-                    </button>
-                    <button type="button" onclick="submitNewOrder('kitchen')" style="flex:1; padding:12px; background:#0F3460; color:white; border:1px solid var(--border); border-radius:8px; font-weight:800; font-size:0.95rem; cursor:pointer;">
-                        🍳 Create &amp; Send to Kitchen
-                    </button>
-                </div>
-            </div>
-
-            <button onclick="closeNewOrderModal()" style="width:100%; padding:10px; background:transparent; border:none; color:var(--muted); font-weight:700; font-size:0.9rem; cursor:pointer; margin-top:8px;">
                 Cancel
             </button>
         </div>
