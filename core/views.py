@@ -524,28 +524,7 @@ def create_order(request):
                 order.save()
             except Order.DoesNotExist:
                 return JsonResponse({'error': 'Order not found'}, status=404)
-        elif action == 'kitchen' and table:
-            # Look for an active order (pending or invoiced)
-            order = Order.objects.filter(company=company, table=table, status__in=['pending', 'invoiced']).first()
-            if order:
-                # Append to existing
-                order.total_amount = float(order.total_amount) + total
-                # If they add new items to an invoiced order, it becomes pending again
-                order.status = 'pending'
-                order.save()
-            else:
-                # Create new
-                order = Order.objects.create(
-                    company=company,
-                    status='pending',
-                    order_type=order_type,
-                    payment_method=payment_method,
-                    cash_amount=cash_amount,
-                    upi_amount=upi_amount,
-                    total_amount=total,
-                    billed_by=request.user,
-                    table=table
-                )
+
         else:
             if action in ['checkout', 'pay', 'paid']:
                 status = 'paid'
