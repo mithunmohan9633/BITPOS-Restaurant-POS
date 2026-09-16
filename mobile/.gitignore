@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# React Native / Metro
+.metro-health-check*
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Android / iOS build artifacts
+android/app/build/
+android/build/
+android/.gradle/
+ios/Pods/
+ios/build/
+.expo/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment & Local Machine Settings
+.env
+.env.local
+android/local.properties
+android/.gradle/
+
