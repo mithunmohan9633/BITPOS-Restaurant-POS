@@ -8,33 +8,36 @@ from django.views.decorators.csrf import csrf_exempt
 
 @api_view(['POST'])
 def api_login(request):
-    username = request.data.get('username')
-    password = request.data.get('password')
+    try:
+        username = request.data.get('username')
+        password = request.data.get('password')
 
-    if not username or not password:
-        return Response({'success': False, 'error': 'Username and password required'}, status=400)
+        if not username or not password:
+            return Response({'success': False, 'error': 'Username and password required'}, status=400)
 
-    user = authenticate(request, username=username, password=password)
-    if user is not None:
-        try:
-            login(request, user)
-        except Exception:
-            pass
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            try:
+                login(request, user)
+            except Exception:
+                pass
 
-        role = 'superuser' if user.is_superuser else 'user'
-        try:
-            if user.profile:
-                role = user.profile.role
-        except Exception:
-            pass
+            role = 'superuser' if user.is_superuser else 'user'
+            try:
+                if user.profile:
+                    role = user.profile.role
+            except Exception:
+                pass
 
-        return Response({
-            'success': True,
-            'username': user.username,
-            'role': role
-        })
-    else:
-        return Response({'success': False, 'error': 'Invalid username or password'}, status=400)
+            return Response({
+                'success': True,
+                'username': user.username,
+                'role': role
+            })
+        else:
+            return Response({'success': False, 'error': 'Invalid username or password'}, status=400)
+    except Exception as e:
+        return Response({'success': False, 'error': str(e)}, status=500)
 
 @api_view(['GET'])
 def get_companies(request):
