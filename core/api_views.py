@@ -17,9 +17,13 @@ def api_login(request):
     user = authenticate(request, username=username, password=password)
     if user is not None:
         login(request, user)
-        role = user.profile.role if hasattr(user, 'profile') else 'user'
-        if user.is_superuser:
-            role = 'superuser'
+        role = 'superuser' if user.is_superuser else 'user'
+        try:
+            if user.profile:
+                role = user.profile.role
+        except Exception:
+            pass
+
         return Response({
             'success': True,
             'username': user.username,

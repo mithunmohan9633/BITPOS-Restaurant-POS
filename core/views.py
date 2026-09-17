@@ -46,7 +46,13 @@ def login_view(request):
         if user is not None:
             login(request, user)
             if 'application/json' in request.content_type:
-                return JsonResponse({'success': True, 'role': user.profile.role if hasattr(user, 'profile') else 'user'})
+                role = 'superuser' if user.is_superuser else 'user'
+                try:
+                    if user.profile:
+                        role = user.profile.role
+                except Exception:
+                    pass
+                return JsonResponse({'success': True, 'role': role})
             if user.is_superuser:
                 return HttpResponseRedirect(reverse('super_admin_dashboard'))
             elif hasattr(user, 'profile') and user.profile.role == 'admin':
