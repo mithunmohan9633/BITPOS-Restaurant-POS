@@ -2,6 +2,7 @@ import axios, { AxiosError, InternalAxiosRequestConfig } from 'axios';
 import { getSecureToken, clearSecureToken } from '../storage/secureStorage';
 
 export const API_BASE_URL = process.env.API_BASE_URL || 'http://10.0.2.2:8000'; // Android emulator localhost default
+export const API_BASE_URL = process.env.API_BASE_URL || 'http://192.168.1.101:8000'; // PC local Wi-Fi address
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
