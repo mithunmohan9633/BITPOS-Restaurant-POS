@@ -116,7 +116,7 @@ DATABASE_URL = os.environ.get('DATABASE_URL') or SUPABASE_DB_URL
 DATABASES = {
     'default': dj_database_url.parse(
         DATABASE_URL,
-        conn_max_age=600
+        conn_max_age=0
     )
 }
 
