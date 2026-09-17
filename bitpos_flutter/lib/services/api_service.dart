@@ -13,7 +13,7 @@ class ApiService {
     _cookie = prefs.getString('cookie');
   }
 
-  Future<bool> login(String username, String password) async {
+  Future<String?> login(String username, String password) async {
     try {
       final response = await http.post(
         Uri.parse('$baseUrl/login/'),
@@ -24,6 +24,9 @@ class ApiService {
         }),
       );
 
+      print('Login response status: ${response.statusCode}');
+      print('Login response body: ${response.body}');
+
       final rawCookie = response.headers['set-cookie'];
       if (rawCookie != null) {
         _cookie = rawCookie;
@@ -33,13 +36,17 @@ class ApiService {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        return data['success'] == true;
+        if (data['success'] == true) {
+          return null;
+        } else {
+          return data['error'] ?? 'Login failed';
+        }
+      } else {
+        return 'Server error: Status ${response.statusCode}';
       }
-
-      return false;
     } catch (e) {
       print('Login error: $e');
-      return false;
+      return 'Network error: $e';
     }
   }
 

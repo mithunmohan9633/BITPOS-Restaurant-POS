@@ -28,7 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _errorMessage = '';
     });
 
-    bool success = await _apiService.login(
+    String? error = await _apiService.login(
       _usernameController.text.trim(),
       _passwordController.text.trim(),
     );
@@ -37,14 +37,14 @@ class _LoginScreenState extends State<LoginScreen> {
       _isLoading = false;
     });
 
-    if (success && mounted) {
+    if (error == null && mounted) {
       Navigator.pushReplacement(
         context,
         MaterialPageRoute(builder: (context) => const DashboardScreen()),
       );
     } else {
       setState(() {
-        _errorMessage = 'Invalid username or password, or server unreachable.';
+        _errorMessage = error ?? 'Unknown error';
       });
     }
   }
