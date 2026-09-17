@@ -1,9 +1,32 @@
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from django.contrib.auth import authenticate, login
 from .models import Company, UserProfile
 from .serializers import CompanySerializer, UserProfileSerializer, CategorySerializer
 from django.views.decorators.csrf import csrf_exempt
+
+@api_view(['POST'])
+def api_login(request):
+    username = request.data.get('username')
+    password = request.data.get('password')
+
+    if not username or not password:
+        return Response({'success': False, 'error': 'Username and password required'}, status=400)
+
+    user = authenticate(request, username=username, password=password)
+    if user is not None:
+        login(request, user)
+        role = user.profile.role if hasattr(user, 'profile') else 'user'
+        if user.is_superuser:
+            role = 'superuser'
+        return Response({
+            'success': True,
+            'username': user.username,
+            'role': role
+        })
+    else:
+        return Response({'success': False, 'error': 'Invalid username or password'}, status=400)
 
 @api_view(['GET'])
 def get_companies(request):

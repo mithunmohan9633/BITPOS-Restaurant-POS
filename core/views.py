@@ -28,13 +28,25 @@ def validate_credentials(username, password=None):
     return errors
 
 
+@csrf_exempt
 def login_view(request):
     if request.method == 'POST':
-        u = request.POST.get('username')
-        p = request.POST.get('password')
+        if 'application/json' in request.content_type:
+            try:
+                data = json.loads(request.body)
+                u = data.get('username')
+                p = data.get('password')
+            except:
+                u = p = None
+        else:
+            u = request.POST.get('username')
+            p = request.POST.get('password')
+
         user = authenticate(request, username=u, password=p)
         if user is not None:
             login(request, user)
+            if 'application/json' in request.content_type:
+                return JsonResponse({'success': True, 'role': user.profile.role if hasattr(user, 'profile') else 'user'})
             if user.is_superuser:
                 return HttpResponseRedirect(reverse('super_admin_dashboard'))
             elif hasattr(user, 'profile') and user.profile.role == 'admin':
@@ -42,6 +54,8 @@ def login_view(request):
             else:
                 return HttpResponseRedirect(reverse('pos_dashboard'))
         else:
+            if 'application/json' in request.content_type:
+                return JsonResponse({'success': False, 'error': 'Invalid username or password'}, status=400)
             return render(request, 'core/login.html', {'error': 'Invalid username or password'})
     return render(request, 'core/login.html')
 
