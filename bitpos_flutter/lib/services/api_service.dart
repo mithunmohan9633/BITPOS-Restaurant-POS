@@ -16,7 +16,7 @@ class ApiService {
   Future<String?> login(String username, String password) async {
     try {
       final response = await http.post(
-        Uri.parse('$baseUrl/login/'),
+        Uri.parse('$baseUrl/api/login/'),
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'username': username,
