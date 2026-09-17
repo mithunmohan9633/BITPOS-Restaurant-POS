@@ -16,7 +16,11 @@ def api_login(request):
 
     user = authenticate(request, username=username, password=password)
     if user is not None:
-        login(request, user)
+        try:
+            login(request, user)
+        except Exception:
+            pass
+
         role = 'superuser' if user.is_superuser else 'user'
         try:
             if user.profile:
