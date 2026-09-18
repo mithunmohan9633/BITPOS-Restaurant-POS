@@ -1,14 +1,16 @@
 
 from django.shortcuts import render, redirect
-from django.http import HttpResponseRedirect, HttpResponseForbidden
+from django.http import HttpResponseRedirect, HttpResponseForbidden, JsonResponse
 from django.urls import reverse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.contrib import messages
+from django.views.decorators.csrf import csrf_exempt
 from .models import Company, Category, MenuItem, UserProfile, Printer, Table
 from .printer_service import print_kot_for_order, print_bill_for_order, test_printer, print_table_transfer_notice
 import re
+import json
 
 def validate_credentials(username, password=None):
     errors = []
