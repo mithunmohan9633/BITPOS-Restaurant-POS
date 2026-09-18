@@ -111,7 +111,7 @@ WSGI_APPLICATION = 'restaurant_pos.wsgi.application'
 
 SUPABASE_DB_URL = 'postgresql://postgres.jbxquepvovxrfsmykdjx:Mithun%4096334@aws-0-ap-northeast-2.pooler.supabase.com:6543/postgres?sslmode=require'
 
-DATABASE_URL = os.environ.get('DATABASE_URL') or SUPABASE_DB_URL
+DATABASE_URL = SUPABASE_DB_URL
 
 DATABASES = {
     'default': dj_database_url.parse(
