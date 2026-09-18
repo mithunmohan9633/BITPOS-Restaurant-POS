@@ -19,10 +19,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
   String _paymentMethod = 'cash';
   bool _isSubmitting = false;
 
+  String _userRole = 'user';
+  String _userName = '';
+
   @override
   void initState() {
     super.initState();
     _menuFuture = _apiService.getMenu();
+    _loadUserInfo();
+  }
+
+  void _loadUserInfo() async {
+    final role = await _apiService.getUserRole();
+    final name = await _apiService.getUsername();
+    setState(() {
+      _userRole = role;
+      _userName = name;
+    });
   }
 
   void _addToCart(MenuItemModel item) {
@@ -232,10 +245,30 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('BITPOS Restaurant Dashboard'),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('BITPOS Dashboard', style: TextStyle(fontSize: 18)),
+            Text(
+              'User: $_userName (${_userRole.toUpperCase()})',
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+          ],
+        ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
         actions: [
+          if (_userRole == 'admin' || _userRole == 'superuser')
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Center(
+                child: Chip(
+                  label: Text(_userRole.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                  backgroundColor: Colors.orange.shade800,
+                  labelStyle: const TextStyle(color: Colors.white),
+                ),
+              ),
+            ),
           IconButton(
             icon: const Icon(Icons.list_alt),
             tooltip: 'Active Orders',

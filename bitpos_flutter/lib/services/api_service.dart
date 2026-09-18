@@ -37,6 +37,9 @@ class ApiService {
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         if (data['success'] == true) {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('role', data['role'] ?? 'user');
+          await prefs.setString('username', data['username'] ?? username);
           return null;
         } else {
           return data['error'] ?? 'Login failed';
@@ -142,6 +145,16 @@ class ApiService {
       print('Active orders error: $e');
       rethrow;
     }
+  }
+
+  Future<String> getUserRole() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('role') ?? 'user';
+  }
+
+  Future<String> getUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('username') ?? 'User';
   }
 
   Future<void> logout() async {
