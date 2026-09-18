@@ -49,6 +49,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return _cart.fold(0.0, (sum, item) => sum + item.total);
   }
 
+  int get _cartItemCount {
+    return _cart.fold(0, (sum, item) => sum + item.qty);
+  }
+
   void _checkout() async {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -77,6 +81,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         setState(() {
           _cart.clear();
         });
+        // Close bottom sheet if open on mobile
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -93,8 +101,135 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  void _showCartBottomSheet() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        return DraggableScrollableSheet(
+          initialChildSize: 0.7,
+          minChildSize: 0.4,
+          maxChildSize: 0.95,
+          expand: false,
+          builder: (context, scrollController) {
+            return Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: _buildCartContent(scrollController),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildCartContent(ScrollController? scrollController) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.between,
+          children: [
+            const Text(
+              'Current Order',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+        const Divider(),
+        Row(
+          children: [
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _orderType,
+                decoration: const InputDecoration(labelText: 'Order Type'),
+                items: const [
+                  DropdownMenuItem(value: 'dine_in', child: Text('Dine In')),
+                  DropdownMenuItem(value: 'parcel', child: Text('Parcel')),
+                ],
+                onChanged: (val) => setState(() => _orderType = val!),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: DropdownButtonFormField<String>(
+                value: _paymentMethod,
+                decoration: const InputDecoration(labelText: 'Payment'),
+                items: const [
+                  DropdownMenuItem(value: 'cash', child: Text('Cash')),
+                  DropdownMenuItem(value: 'upi', child: Text('UPI')),
+                ],
+                onChanged: (val) => setState(() => _paymentMethod = val!),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Expanded(
+          child: _cart.isEmpty
+              ? const Center(child: Text('Cart is empty. Tap menu items to add.'))
+              : ListView.builder(
+                  controller: scrollController,
+                  itemCount: _cart.length,
+                  itemBuilder: (context, index) {
+                    final cartItem = _cart[index];
+                    return ListTile(
+                      title: Text(cartItem.item.name),
+                      subtitle: Text('₹${cartItem.item.price} x ${cartItem.qty}'),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.remove_circle_outline),
+                            onPressed: () => _updateQty(index, -1),
+                          ),
+                          Text('${cartItem.qty}', style: const TextStyle(fontSize: 16)),
+                          IconButton(
+                            icon: const Icon(Icons.add_circle_outline),
+                            onPressed: () => _updateQty(index, 1),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+        const Divider(),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            Text('₹${_cartTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+          ],
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton(
+          onPressed: _isSubmitting ? null : _checkout,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.deepOrange,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+          ),
+          child: _isSubmitting
+              ? const CircularProgressIndicator(color: Colors.white)
+              : const Text('Checkout & Pay', style: TextStyle(fontSize: 18)),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isWideScreen = screenWidth >= 800;
+    final crossAxisCount = screenWidth >= 1200 ? 4 : (screenWidth >= 800 ? 3 : 2);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('BITPOS Restaurant Dashboard'),
@@ -130,7 +265,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           // Menu Section
           Expanded(
-            flex: 3,
+            flex: isWideScreen ? 3 : 1,
             child: FutureBuilder<List<CategoryModel>>(
               future: _menuFuture,
               builder: (context, snapshot) {
@@ -144,6 +279,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
                 final categories = snapshot.data!;
                 return ListView.builder(
+                  padding: const EdgeInsets.all(8),
                   itemCount: categories.length,
                   itemBuilder: (context, catIndex) {
                     final category = categories[catIndex];
@@ -157,9 +293,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
-                          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 2.5,
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: crossAxisCount,
+                            childAspectRatio: 2.2,
                             crossAxisSpacing: 8,
                             mainAxisSpacing: 8,
                           ),
@@ -201,105 +337,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
               },
             ),
           ),
-          const VerticalDivider(width: 1),
-          // Cart / Billing Section
-          Expanded(
-            flex: 2,
-            child: Container(
-              color: Colors.grey.shade50,
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+          // Cart Section for Wide Screens (Tablets / Desktops)
+          if (isWideScreen) ...[
+            const VerticalDivider(width: 1),
+            Expanded(
+              flex: 2,
+              child: Container(
+                color: Colors.grey.shade50,
+                padding: const EdgeInsets.all(16.0),
+                child: _buildCartContent(null),
+              ),
+            ),
+          ],
+        ],
+      ),
+      // Floating Cart Bar for Mobile Phones (< 800px width)
+      bottomNavigationBar: !isWideScreen && _cart.isNotEmpty
+          ? Container(
+              color: Colors.deepOrange,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.between,
                 children: [
-                  const Text(
-                    'Current Order',
-                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  Text(
+                    '$_cartItemCount items | ₹${_cartTotal.toStringAsFixed(2)}',
+                    style: const TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  const Divider(),
-                  // Order Type & Payment Method Selectors
-                  Row(
-                    children: [
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _orderType,
-                          decoration: const InputDecoration(labelText: 'Order Type'),
-                          items: const [
-                            DropdownMenuItem(value: 'dine_in', child: Text('Dine In')),
-                            DropdownMenuItem(value: 'parcel', child: Text('Parcel')),
-                          ],
-                          onChanged: (val) => setState(() => _orderType = val!),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: DropdownButtonFormField<String>(
-                          value: _paymentMethod,
-                          decoration: const InputDecoration(labelText: 'Payment'),
-                          items: const [
-                            DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                            DropdownMenuItem(value: 'upi', child: Text('UPI')),
-                          ],
-                          onChanged: (val) => setState(() => _paymentMethod = val!),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  // Cart Items List
-                  Expanded(
-                    child: _cart.isEmpty
-                        ? const Center(child: Text('Cart is empty. Tap menu items to add.'))
-                        : ListView.builder(
-                            itemCount: _cart.length,
-                            itemBuilder: (context, index) {
-                              final cartItem = _cart[index];
-                              return ListTile(
-                                title: Text(cartItem.item.name),
-                                subtitle: Text('₹${cartItem.item.price} x ${cartItem.qty}'),
-                                trailing: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    IconButton(
-                                      icon: const Icon(Icons.remove_circle_outline),
-                                      onPressed: () => _updateQty(index, -1),
-                                    ),
-                                    Text('${cartItem.qty}', style: const TextStyle(fontSize: 16)),
-                                    IconButton(
-                                      icon: const Icon(Icons.add_circle_outline),
-                                      onPressed: () => _updateQty(index, 1),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                  ),
-                  const Divider(),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      Text('₹${_cartTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
                   ElevatedButton(
-                    onPressed: _isSubmitting ? null : _checkout,
+                    onPressed: _showCartBottomSheet,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.deepOrange,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      backgroundColor: Colors.white,
+                      foregroundColor: Colors.deepOrange,
                     ),
-                    child: _isSubmitting
-                        ? const CircularProgressIndicator(color: Colors.white)
-                        : const Text('Checkout & Pay', style: TextStyle(fontSize: 18)),
+                    child: const Text('View Cart'),
                   ),
                 ],
               ),
-            ),
-          ),
-        ],
-      ),
+            )
+          : null,
     );
   }
 }
