@@ -42,6 +42,12 @@ class ApiService {
           return data['error'] ?? 'Login failed';
         }
       } else {
+        try {
+          final data = json.decode(response.body);
+          if (data['error'] != null) {
+            return data['error'];
+          }
+        } catch (_) {}
         return 'Server error: Status ${response.statusCode}';
       }
     } catch (e) {
