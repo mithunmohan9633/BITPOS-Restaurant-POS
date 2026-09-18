@@ -143,7 +143,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Row(
-          mainAxisAlignment: MainAxisAlignment.between,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text(
               'Current Order',
@@ -390,7 +390,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               color: Colors.deepOrange,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.between,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
                     '$_cartItemCount items | ₹${_cartTotal.toStringAsFixed(2)}',
