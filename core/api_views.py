@@ -31,6 +31,9 @@ def api_login(request):
             except Exception:
                 pass
 
+            if user.is_superuser or role == 'admin':
+                return Response({'success': False, 'error': 'Admin & Super Admin users must use the Web Dashboard. Mobile app is for Staff & Cashiers only.'}, status=400)
+
             return Response({
                 'success': True,
                 'username': user.username,
@@ -73,10 +76,19 @@ def manage_users_api(request):
         profile = UserProfile.objects.create(user=user, role=role, company=company)
         return Response({'success': True, 'message': 'User created successfully'})
 
-from .models import Category
+from .models import Category, Table
 
 @api_view(['GET'])
 def get_menu(request):
     categories = Category.objects.all().prefetch_related('items')
     serializer = CategorySerializer(categories, many=True)
     return Response(serializer.data)
+
+@api_view(['GET'])
+def get_tables(request):
+    company = request.user.profile.company if hasattr(request.user, 'profile') else None
+    if not company:
+        return Response({'success': False, 'error': 'Company not found'}, status=400)
+    tables = Table.objects.filter(company=company)
+    data = [{'id': t.id, 'table_number': t.table_number, 'seating_capacity': t.seating_capacity, 'is_occupied': t.is_occupied} for t in tables]
+    return Response({'success': True, 'tables': data})

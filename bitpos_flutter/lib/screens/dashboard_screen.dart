@@ -5,7 +5,16 @@ import 'active_orders_screen.dart';
 import 'login_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+  final int? tableId;
+  final String tableName;
+  final String orderType;
+
+  const DashboardScreen({
+    super.key,
+    required this.tableId,
+    required this.tableName,
+    required this.orderType,
+  });
 
   @override
   State<DashboardScreen> createState() => _DashboardScreenState();
@@ -15,10 +24,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<CategoryModel>> _menuFuture;
   final List<OrderItemCart> _cart = [];
-  String _orderType = 'dine_in';
-  String _paymentMethod = 'cash';
   bool _isSubmitting = false;
-
   String _userRole = 'user';
   String _userName = '';
 
@@ -66,10 +72,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
     return _cart.fold(0, (sum, item) => sum + item.qty);
   }
 
-  void _checkout() async {
+  void _submitOrder(String action) async {
     if (_cart.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Cart is empty')),
+        const SnackBar(content: Text('Cart is empty. Please select menu items.')),
       );
       return;
     }
@@ -81,20 +87,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
     try {
       final result = await _apiService.createOrder(
         items: _cart,
-        paymentMethod: _paymentMethod,
         total: _cartTotal,
-        orderType: _orderType,
-        action: 'checkout',
+        tableId: widget.tableId,
+        action: action, // 'kitchen' or 'bill'
+        orderType: widget.orderType,
       );
 
       if (mounted) {
+        final actionName = action == 'kitchen' ? 'Sent to Kitchen (KOT)' : 'Bill Printed';
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Order Created: ${result['order_number']}')),
+          SnackBar(content: Text('$actionName successfully! Order #${result['order_number']}')),
         );
         setState(() {
           _cart.clear();
         });
-        // Close bottom sheet if open on mobile
         if (Navigator.canPop(context)) {
           Navigator.pop(context);
         }
@@ -145,9 +151,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text(
-              'Current Order',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            Text(
+              'Order: ${widget.tableName}',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
             ),
             IconButton(
               icon: const Icon(Icons.close),
@@ -156,34 +162,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ],
         ),
         const Divider(),
-        Row(
-          children: [
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _orderType,
-                decoration: const InputDecoration(labelText: 'Order Type'),
-                items: const [
-                  DropdownMenuItem(value: 'dine_in', child: Text('Dine In')),
-                  DropdownMenuItem(value: 'parcel', child: Text('Parcel')),
-                ],
-                onChanged: (val) => setState(() => _orderType = val!),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: DropdownButtonFormField<String>(
-                value: _paymentMethod,
-                decoration: const InputDecoration(labelText: 'Payment'),
-                items: const [
-                  DropdownMenuItem(value: 'cash', child: Text('Cash')),
-                  DropdownMenuItem(value: 'upi', child: Text('UPI')),
-                ],
-                onChanged: (val) => setState(() => _paymentMethod = val!),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
         Expanded(
           child: _cart.isEmpty
               ? const Center(child: Text('Cart is empty. Tap menu items to add.'))
@@ -221,17 +199,36 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('₹${_cartTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
           ],
         ),
-        const SizedBox(height: 16),
-        ElevatedButton(
-          onPressed: _isSubmitting ? null : _checkout,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.deepOrange,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-          child: _isSubmitting
-              ? const CircularProgressIndicator(color: Colors.white)
-              : const Text('Checkout & Pay', style: TextStyle(fontSize: 18)),
+        const SizedBox(height: 12),
+        // Action Buttons for Staff: Proceed to Kitchen & Print Bill
+        Row(
+          children: [
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : () => _submitOrder('kitchen'),
+                icon: const Icon(Icons.kitchen),
+                label: const Text('Proceed to Kitchen'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade800,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: ElevatedButton.icon(
+                onPressed: _isSubmitting ? null : () => _submitOrder('bill'),
+                icon: const Icon(Icons.receipt),
+                label: const Text('Print Bill'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green.shade700,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -248,27 +245,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('BITPOS Dashboard', style: TextStyle(fontSize: 18)),
-            Text(
-              'User: $_userName (${_userRole.toUpperCase()})',
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
-            ),
+            Text(widget.tableName, style: const TextStyle(fontSize: 18)),
+            Text('Staff: $_userName', style: const TextStyle(fontSize: 12, color: Colors.white70)),
           ],
         ),
         backgroundColor: Colors.deepOrange,
         foregroundColor: Colors.white,
         actions: [
-          if (_userRole == 'admin' || _userRole == 'superuser')
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Center(
-                child: Chip(
-                  label: Text(_userRole.toUpperCase(), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
-                  backgroundColor: Colors.orange.shade800,
-                  labelStyle: const TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
           IconButton(
             icon: const Icon(Icons.list_alt),
             tooltip: 'Active Orders',

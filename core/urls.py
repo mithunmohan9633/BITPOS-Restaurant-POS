@@ -27,6 +27,7 @@ urlpatterns = [
     path('super-admin/delete-company/<int:company_id>/', views.super_admin_delete_company, name='super_admin_delete_company'),
     path('api/create-order/', views.create_order, name='create_order'),
     path('api/login/', api_views.api_login, name='api_login'),
+    path('api/tables/', api_views.get_tables, name='api_tables'),
     path('api/table-orders/<int:table_id>/', views.get_table_orders, name='get_table_orders'),
     path('api/active-orders/', views.get_active_orders, name='get_active_orders'),
     path('api/pay-order/<str:order_number>/', views.pay_order, name='pay_order'),

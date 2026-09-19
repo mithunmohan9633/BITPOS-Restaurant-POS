@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/menu.dart';
+import '../models/table.dart';
 
 class ApiService {
   static const String baseUrl = 'https://bitpos-restaurant-pos.vercel.app';
@@ -82,13 +83,37 @@ class ApiService {
     }
   }
 
+  Future<List<TableModel>> getTables() async {
+    try {
+      final headers = <String, String>{};
+      if (_cookie != null) {
+        headers['Cookie'] = _cookie!;
+      }
+
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/tables/'),
+        headers: headers,
+      );
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        List tablesList = data['tables'] ?? [];
+        return tablesList.map((j) => TableModel.fromJson(j)).toList();
+      }
+      throw Exception('Failed to load tables');
+    } catch (e) {
+      print('Get tables error: $e');
+      rethrow;
+    }
+  }
+
   Future<Map<String, dynamic>> createOrder({
     required List<OrderItemCart> items,
-    required String paymentMethod,
     required double total,
     int? tableId,
-    String action = 'checkout',
+    String action = 'kitchen', // 'kitchen' or 'bill'
     String orderType = 'dine_in',
+    String? orderNumber,
   }) async {
     try {
       final headers = <String, String>{
@@ -100,11 +125,12 @@ class ApiService {
 
       final body = json.encode({
         'items': items.map((i) => i.toJson()).toList(),
-        'payment_method': paymentMethod,
+        'payment_method': 'cash',
         'total': total,
         'table_id': tableId,
         'action': action,
         'order_type': orderType,
+        if (orderNumber != null) 'order_number': orderNumber,
       });
 
       final response = await http.post(
