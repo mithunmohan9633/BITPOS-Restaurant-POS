@@ -21,6 +21,17 @@ class ApiService {
     }
   }
 
+  String? _extractSessionCookie(String? rawCookie) {
+    if (rawCookie == null) return null;
+    final parts = rawCookie.split(';');
+    for (var part in parts) {
+      if (part.trim().startsWith('sessionid=')) {
+        return part.trim();
+      }
+    }
+    return rawCookie.split(';').first.trim();
+  }
+
   Future<String?> login(String username, String password) async {
     try {
       final response = await http.post(
@@ -37,9 +48,12 @@ class ApiService {
 
       final rawCookie = response.headers['set-cookie'];
       if (rawCookie != null) {
-        _cookie = rawCookie;
+        final extracted = _extractSessionCookie(rawCookie);
+        _cookie = extracted;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('cookie', rawCookie);
+        if (extracted != null) {
+          await prefs.setString('cookie', extracted);
+        }
       }
 
       if (response.statusCode == 200) {
