@@ -1238,3 +1238,67 @@ def manage_expenses(request):
         
     expenses = Expense.objects.filter(company=company).order_by('-date', '-id')
     return render(request, 'core/manage_expenses.html', {'expenses': expenses})
+
+
+@csrf_exempt
+def api_login(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            username = data.get('username')
+            password = data.get('password')
+        except:
+            return JsonResponse({'success': False, 'error': 'Invalid JSON'}, status=400)
+
+        if not username or not password:
+            return JsonResponse({'success': False, 'error': 'Username and password required'}, status=400)
+
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            role = 'superuser' if user.is_superuser else 'user'
+            try:
+                if user.profile:
+                    role = user.profile.role
+            except Exception:
+                pass
+
+            if user.is_superuser or role == 'admin':
+                return JsonResponse({'success': False, 'error': 'Admin & Super Admin users must use the Web Dashboard. Mobile app is for Staff & Cashiers only.'}, status=400)
+
+            try:
+                login(request, user)
+            except Exception:
+                pass
+
+            return JsonResponse({
+                'success': True,
+                'username': user.username,
+                'role': role
+            })
+        else:
+            return JsonResponse({'success': False, 'error': 'Invalid username or password'}, status=400)
+    return JsonResponse({'error': 'POST only'}, status=405)
+
+
+@login_required(login_url='login_view')
+def get_tables(request):
+    if request.method == 'GET':
+        company = request.user.profile.company if hasattr(request.user, 'profile') else None
+        if not company:
+            return JsonResponse({'success': False, 'error': 'Company not found'}, status=400)
+        tables = Table.objects.filter(company=company)
+        data = [{'id': t.id, 'table_number': t.table_number, 'seating_capacity': t.seating_capacity, 'is_occupied': t.is_occupied} for t in tables]
+        return JsonResponse({'success': True, 'tables': data})
+    return JsonResponse({'error': 'GET only'}, status=405)
+
+
+@login_required(login_url='login_view')
+def get_menu_api(request):
+    if request.method == 'GET':
+        categories = Category.objects.all().prefetch_related('items')
+        data = []
+        for cat in categories:
+            items_data = [{'id': i.id, 'name': i.name, 'price': str(i.price)} for i in cat.items.all()]
+            data.append({'id': cat.id, 'name': cat.name, 'items': items_data})
+        return JsonResponse(data, safe=False)
+    return JsonResponse({'error': 'GET only'}, status=405)
