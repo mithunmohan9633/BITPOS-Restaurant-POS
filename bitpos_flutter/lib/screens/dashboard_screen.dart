@@ -249,7 +249,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Text('Staff: $_userName', style: const TextStyle(fontSize: 12, color: Colors.white70)),
           ],
         ),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: const Color(0xFFD38C44),
         foregroundColor: Colors.white,
         actions: [
           IconButton(

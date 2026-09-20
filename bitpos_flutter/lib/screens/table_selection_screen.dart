@@ -49,7 +49,7 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
             Text('Staff: $_staffName', style: const TextStyle(fontSize: 12, color: Colors.white70)),
           ],
         ),
-        backgroundColor: Colors.deepOrange,
+        backgroundColor: const Color(0xFFD38C44),
         foregroundColor: Colors.white,
         actions: [
           IconButton(
