@@ -65,7 +65,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  const Icon(Icons.restaurant_menu, size: 64, color: Colors.deepOrange),
+                  Image.asset(
+                    'assets/images/logo.png',
+                    height: 80,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) =>
+                        const Icon(Icons.restaurant_menu, size: 64, color: Colors.deepOrange),
+                  ),
                   const SizedBox(height: 16),
                   const Text(
                     'BITPOS POS',

@@ -14,6 +14,13 @@ class ApiService {
     _cookie = prefs.getString('cookie');
   }
 
+  Future<void> _ensureInitialized() async {
+    if (_cookie == null) {
+      final prefs = await SharedPreferences.getInstance();
+      _cookie = prefs.getString('cookie');
+    }
+  }
+
   Future<String?> login(String username, String password) async {
     try {
       final response = await http.post(
@@ -61,6 +68,7 @@ class ApiService {
   }
 
   Future<List<CategoryModel>> getMenu() async {
+    await _ensureInitialized();
     try {
       final headers = <String, String>{};
       if (_cookie != null) {
@@ -84,6 +92,7 @@ class ApiService {
   }
 
   Future<List<TableModel>> getTables() async {
+    await _ensureInitialized();
     try {
       final headers = <String, String>{};
       if (_cookie != null) {
@@ -115,6 +124,7 @@ class ApiService {
     String orderType = 'dine_in',
     String? orderNumber,
   }) async {
+    await _ensureInitialized();
     try {
       final headers = <String, String>{
         'Content-Type': 'application/json',
@@ -151,6 +161,7 @@ class ApiService {
   }
 
   Future<List<dynamic>> getActiveOrders() async {
+    await _ensureInitialized();
     try {
       final headers = <String, String>{};
       if (_cookie != null) {
@@ -187,6 +198,8 @@ class ApiService {
     _cookie = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('cookie');
+    await prefs.remove('role');
+    await prefs.remove('username');
     try {
       await http.get(Uri.parse('$baseUrl/logout/'));
     } catch (_) {}
