@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'dashboard_screen.dart';
 
 class ActiveOrdersScreen extends StatefulWidget {
   const ActiveOrdersScreen({super.key});
@@ -11,6 +12,7 @@ class ActiveOrdersScreen extends StatefulWidget {
 class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
   final ApiService _apiService = ApiService();
   late Future<List<dynamic>> _ordersFuture;
+  bool _isProcessing = false;
 
   @override
   void initState() {
@@ -22,6 +24,40 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
     setState(() {
       _ordersFuture = _apiService.getActiveOrders();
     });
+  }
+
+  void _checkoutOrder(String orderNumber, double totalAmount) async {
+    setState(() {
+      _isProcessing = true;
+    });
+
+    try {
+      await _apiService.createOrder(
+        items: [],
+        total: totalAmount,
+        action: 'bill',
+        orderNumber: orderNumber,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Order #$orderNumber checked out & bill printed successfully!')),
+        );
+        _refresh();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error checking out order: $e')),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+        });
+      }
+    }
   }
 
   @override
@@ -56,9 +92,16 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
             itemBuilder: (context, index) {
               final order = orders[index];
               final items = order['items'] as List;
+              final orderNumber = order['order_number'];
+              final totalAmount = double.parse(order['total_amount'].toString());
+
               return Card(
                 elevation: 3,
                 margin: const EdgeInsets.only(bottom: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFE8DCCB), width: 2),
+                ),
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Column(
@@ -68,12 +111,12 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Order #${order['order_number']}',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            'Order #$orderNumber',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4A3B32)),
                           ),
                           Text(
-                            '₹${order['total_amount']}',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepOrange),
+                            '₹$totalAmount',
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFD38C44)),
                           ),
                         ],
                       ),
@@ -90,6 +133,46 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
                               ],
                             ),
                           )),
+                      const Divider(),
+                      // Action buttons: Add Items & Checkout / Print Bill
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          OutlinedButton.icon(
+                            onPressed: _isProcessing
+                                ? null
+                                : () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => DashboardScreen(
+                                          tableId: null,
+                                          tableName: 'Order #$orderNumber',
+                                          orderType: 'dine_in',
+                                          existingOrderNumber: orderNumber,
+                                        ),
+                                      ),
+                                    ).then((_) => _refresh());
+                                  },
+                            icon: const Icon(Icons.add_shopping_cart, size: 18),
+                            label: const Text('Add Items'),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: const Color(0xFFD38C44),
+                              side: const BorderSide(color: Color(0xFFD38C44)),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          ElevatedButton.icon(
+                            onPressed: _isProcessing ? null : () => _checkoutOrder(orderNumber, totalAmount),
+                            icon: const Icon(Icons.receipt_long, size: 18),
+                            label: const Text('Checkout & Bill'),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.green.shade700,
+                              foregroundColor: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),

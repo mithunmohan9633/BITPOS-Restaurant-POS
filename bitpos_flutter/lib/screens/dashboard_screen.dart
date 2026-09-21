@@ -8,12 +8,14 @@ class DashboardScreen extends StatefulWidget {
   final int? tableId;
   final String tableName;
   final String orderType;
+  final String? existingOrderNumber;
 
   const DashboardScreen({
     super.key,
     required this.tableId,
     required this.tableName,
     required this.orderType,
+    this.existingOrderNumber,
   });
 
   @override
@@ -91,6 +93,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         tableId: widget.tableId,
         action: action, // 'kitchen' or 'bill'
         orderType: widget.orderType,
+        orderNumber: widget.existingOrderNumber,
       );
 
       if (mounted) {
