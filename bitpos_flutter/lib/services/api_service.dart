@@ -32,6 +32,22 @@ class ApiService {
     return rawCookie.split(';').first.trim();
   }
 
+  Future<Map<String, String>> _getHeaders() async {
+    await _ensureInitialized();
+    final prefs = await SharedPreferences.getInstance();
+    final username = prefs.getString('username') ?? '';
+    final headers = <String, String>{
+      'Content-Type': 'application/json',
+    };
+    if (_cookie != null) {
+      headers['Cookie'] = _cookie!;
+    }
+    if (username.isNotEmpty) {
+      headers['X-Username'] = username;
+    }
+    return headers;
+  }
+
   Future<String?> login(String username, String password) async {
     try {
       final response = await http.post(
@@ -82,13 +98,8 @@ class ApiService {
   }
 
   Future<List<CategoryModel>> getMenu() async {
-    await _ensureInitialized();
+    final headers = await _getHeaders();
     try {
-      final headers = <String, String>{};
-      if (_cookie != null) {
-        headers['Cookie'] = _cookie!;
-      }
-
       final response = await http.get(
         Uri.parse('$baseUrl/api/menu/'),
         headers: headers,
@@ -106,13 +117,8 @@ class ApiService {
   }
 
   Future<List<TableModel>> getTables() async {
-    await _ensureInitialized();
+    final headers = await _getHeaders();
     try {
-      final headers = <String, String>{};
-      if (_cookie != null) {
-        headers['Cookie'] = _cookie!;
-      }
-
       final response = await http.get(
         Uri.parse('$baseUrl/api/tables/'),
         headers: headers,
@@ -123,7 +129,7 @@ class ApiService {
         List tablesList = data['tables'] ?? [];
         return tablesList.map((j) => TableModel.fromJson(j)).toList();
       }
-      throw Exception('Failed to load tables');
+      throw Exception('Failed to load tables (Status ${response.statusCode})');
     } catch (e) {
       print('Get tables error: $e');
       rethrow;
@@ -138,14 +144,10 @@ class ApiService {
     String orderType = 'dine_in',
     String? orderNumber,
   }) async {
-    await _ensureInitialized();
+    final headers = await _getHeaders();
     try {
-      final headers = <String, String>{
-        'Content-Type': 'application/json',
-      };
-      if (_cookie != null) {
-        headers['Cookie'] = _cookie!;
-      }
+      final prefs = await SharedPreferences.getInstance();
+      final username = prefs.getString('username') ?? '';
 
       final body = json.encode({
         'items': items.map((i) => i.toJson()).toList(),
@@ -154,6 +156,7 @@ class ApiService {
         'table_id': tableId,
         'action': action,
         'order_type': orderType,
+        'username': username,
         if (orderNumber != null) 'order_number': orderNumber,
       });
 
@@ -175,13 +178,8 @@ class ApiService {
   }
 
   Future<List<dynamic>> getActiveOrders() async {
-    await _ensureInitialized();
+    final headers = await _getHeaders();
     try {
-      final headers = <String, String>{};
-      if (_cookie != null) {
-        headers['Cookie'] = _cookie!;
-      }
-
       final response = await http.get(
         Uri.parse('$baseUrl/api/active-orders/'),
         headers: headers,

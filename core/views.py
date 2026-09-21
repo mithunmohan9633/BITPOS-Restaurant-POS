@@ -500,8 +500,34 @@ from datetime import datetime, timedelta
 from .models import Order, OrderItem
 
 
+def api_login_required(view_func):
+    def wrapped(request, *args, **kwargs):
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.company:
+            return view_func(request, *args, **kwargs)
+
+        username = request.headers.get('X-Username') or request.GET.get('username')
+        if not username and request.method == 'POST':
+            try:
+                body = json.loads(request.body)
+                username = body.get('username')
+            except:
+                pass
+
+        if username:
+            try:
+                user = User.objects.get(username=username)
+                request.user = user
+                if hasattr(user, 'profile') and user.profile.company:
+                    return view_func(request, *args, **kwargs)
+            except User.DoesNotExist:
+                pass
+
+        return JsonResponse({'success': False, 'error': 'Authentication required'}, status=401)
+    return wrapped
+
+
 @csrf_exempt
-@login_required(login_url='login_view')
+@api_login_required
 def create_order(request):
     if request.method == 'POST':
         data = json.loads(request.body)
@@ -606,7 +632,7 @@ def create_order(request):
     return JsonResponse({'error': 'POST only'}, status=405)
 
 
-@login_required(login_url='login_view')
+@api_login_required
 def get_table_orders(request, table_id):
     if request.method == 'GET':
         company = request.user.profile.company
@@ -632,7 +658,7 @@ def get_table_orders(request, table_id):
     return JsonResponse({'error': 'GET only'}, status=405)
 
 
-@login_required(login_url='login_view')
+@api_login_required
 def get_active_orders(request):
     if request.method == 'GET':
         company = request.user.profile.company
@@ -1280,7 +1306,7 @@ def api_login(request):
     return JsonResponse({'error': 'POST only'}, status=405)
 
 
-@login_required(login_url='login_view')
+@api_login_required
 def get_tables(request):
     if request.method == 'GET':
         company = request.user.profile.company if hasattr(request.user, 'profile') else None
@@ -1292,7 +1318,7 @@ def get_tables(request):
     return JsonResponse({'error': 'GET only'}, status=405)
 
 
-@login_required(login_url='login_view')
+@api_login_required
 def get_menu_api(request):
     if request.method == 'GET':
         categories = Category.objects.all().prefetch_related('items')
