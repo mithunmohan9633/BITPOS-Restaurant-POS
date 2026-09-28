@@ -57,7 +57,7 @@ class _AppDrawerState extends State<AppDrawer> {
               _userName,
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
-            accountDescription: Text(
+            accountEmail: Text(
               'Role: ${_userRole.toUpperCase()}',
               style: const TextStyle(fontSize: 13, color: Colors.white70),
             ),
