@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/table.dart';
 import '../services/api_service.dart';
+import '../widgets/app_drawer.dart';
 import 'dashboard_screen.dart';
 import 'active_orders_screen.dart';
 import 'login_screen.dart';
@@ -40,20 +41,27 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFFD38C44);
+    const textColor = Color(0xFF4A3B32);
+    const bgColor = Color(0xFFFDF8F5);
+
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text('Select Table or Order Type'),
-            Text('Staff: $_staffName', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            const Text('Select Table or Order Type', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+            Text('Staff: $_staffName', style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
-        backgroundColor: const Color(0xFFD38C44),
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: textColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: textColor),
         actions: [
           IconButton(
-            icon: const Icon(Icons.list_alt),
+            icon: const Icon(Icons.list_alt, color: primaryColor),
             tooltip: 'Active Orders',
             onPressed: () {
               Navigator.push(
@@ -63,24 +71,12 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
             },
           ),
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: primaryColor),
             onPressed: _refresh,
-          ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await _apiService.logout();
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              }
-            },
           ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -101,9 +97,9 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
                 );
               },
               icon: const Icon(Icons.shopping_bag, size: 28),
-              label: const Text('New Parcel / Takeaway Order', style: TextStyle(fontSize: 18)),
+              label: const Text('New Parcel / Takeaway Order', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green.shade700,
+                backgroundColor: primaryColor,
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -112,7 +108,7 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
             const SizedBox(height: 24),
             const Text(
               'Dine-In Tables',
-              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
             ),
             const SizedBox(height: 12),
             Expanded(
@@ -158,11 +154,11 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
                           );
                         },
                         child: Card(
-                          elevation: 4,
+                          elevation: 2,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
-                            side: BorderSide(
-                              color: table.isOccupied ? Colors.orange.shade700 : Colors.green.shade600,
+                            side: const BorderSide(
+                              color: Color(0xFFE8DCCB),
                               width: 2,
                             ),
                           ),
@@ -174,12 +170,12 @@ class _TableSelectionScreenState extends State<TableSelectionScreen> {
                                 Icon(
                                   Icons.table_restaurant,
                                   size: 36,
-                                  color: table.isOccupied ? Colors.orange.shade700 : Colors.green.shade600,
+                                  color: table.isOccupied ? Colors.orange.shade700 : primaryColor,
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
                                   'Table ${table.tableNumber}',
-                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: textColor),
                                   textAlign: TextAlign.center,
                                 ),
                                 const SizedBox(height: 4),

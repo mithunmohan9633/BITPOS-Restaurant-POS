@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/app_drawer.dart';
 import 'dashboard_screen.dart';
 
 class ActiveOrdersScreen extends StatefulWidget {
@@ -62,18 +63,26 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFFD38C44);
+    const textColor = Color(0xFF4A3B32);
+    const bgColor = Color(0xFFFDF8F5);
+
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
-        title: const Text('Active Orders (Pending KOT)'),
-        backgroundColor: const Color(0xFFD38C44),
-        foregroundColor: Colors.white,
+        title: const Text('Active Orders (Pending KOT)', style: TextStyle(color: textColor, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.white,
+        foregroundColor: textColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: textColor),
         actions: [
           IconButton(
-            icon: const Icon(Icons.refresh),
+            icon: const Icon(Icons.refresh, color: primaryColor),
             onPressed: _refresh,
           ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: FutureBuilder<List<dynamic>>(
         future: _ordersFuture,
         builder: (context, snapshot) {
@@ -96,10 +105,10 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
               final totalAmount = double.parse(order['total_amount'].toString());
 
               return Card(
-                elevation: 3,
+                elevation: 2,
                 margin: const EdgeInsets.only(bottom: 12),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(14),
                   side: const BorderSide(color: Color(0xFFE8DCCB), width: 2),
                 ),
                 child: Padding(
@@ -112,17 +121,17 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
                         children: [
                           Text(
                             'Order #$orderNumber',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFF4A3B32)),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor),
                           ),
                           Text(
                             '₹$totalAmount',
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Color(0xFFD38C44)),
+                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: primaryColor),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
                       Text('Time: ${order['created_at']}', style: TextStyle(color: Colors.grey.shade600)),
-                      const Divider(),
+                      const Divider(color: Color(0xFFE8DCCB)),
                       ...items.map((item) => Padding(
                             padding: const EdgeInsets.symmetric(vertical: 2.0),
                             child: Row(
@@ -133,7 +142,7 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
                               ],
                             ),
                           )),
-                      const Divider(),
+                      const Divider(color: Color(0xFFE8DCCB)),
                       // Action buttons: Add Items & Checkout / Print Bill
                       Row(
                         mainAxisAlignment: MainAxisAlignment.end,
@@ -157,8 +166,8 @@ class _ActiveOrdersScreenState extends State<ActiveOrdersScreen> {
                             icon: const Icon(Icons.add_shopping_cart, size: 18),
                             label: const Text('Add Items'),
                             style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFFD38C44),
-                              side: const BorderSide(color: Color(0xFFD38C44)),
+                              foregroundColor: primaryColor,
+                              side: const BorderSide(color: primaryColor),
                             ),
                           ),
                           const SizedBox(width: 12),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/menu.dart';
 import '../services/api_service.dart';
+import '../widgets/app_drawer.dart';
 import 'active_orders_screen.dart';
 import 'login_screen.dart';
 
@@ -148,6 +149,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildCartContent(ScrollController? scrollController) {
+    const primaryColor = Color(0xFFD38C44);
+    const textColor = Color(0xFF4A3B32);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
@@ -156,7 +160,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           children: [
             Text(
               'Order: ${widget.tableName}',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: textColor),
             ),
             IconButton(
               icon: const Icon(Icons.close),
@@ -164,7 +168,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
           ],
         ),
-        const Divider(),
+        const Divider(color: Color(0xFFE8DCCB)),
         Expanded(
           child: _cart.isEmpty
               ? const Center(child: Text('Cart is empty. Tap menu items to add.'))
@@ -174,18 +178,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   itemBuilder: (context, index) {
                     final cartItem = _cart[index];
                     return ListTile(
-                      title: Text(cartItem.item.name),
+                      title: Text(cartItem.item.name, style: const TextStyle(fontWeight: FontWeight.bold, color: textColor)),
                       subtitle: Text('₹${cartItem.item.price} x ${cartItem.qty}'),
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                            icon: const Icon(Icons.remove_circle_outline),
+                            icon: const Icon(Icons.remove_circle_outline, color: primaryColor),
                             onPressed: () => _updateQty(index, -1),
                           ),
-                          Text('${cartItem.qty}', style: const TextStyle(fontSize: 16)),
+                          Text('${cartItem.qty}', style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                           IconButton(
-                            icon: const Icon(Icons.add_circle_outline),
+                            icon: const Icon(Icons.add_circle_outline, color: primaryColor),
                             onPressed: () => _updateQty(index, 1),
                           ),
                         ],
@@ -194,12 +198,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   },
                 ),
         ),
-        const Divider(),
+        const Divider(color: Color(0xFFE8DCCB)),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            Text('₹${_cartTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.deepOrange)),
+            const Text('Total:', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: textColor)),
+            Text('₹${_cartTotal.toStringAsFixed(2)}', style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: primaryColor)),
           ],
         ),
         const SizedBox(height: 12),
@@ -212,7 +216,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 icon: const Icon(Icons.kitchen),
                 label: const Text('Proceed to Kitchen'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade800,
+                  backgroundColor: primaryColor,
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 14),
                 ),
@@ -239,24 +243,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const primaryColor = Color(0xFFD38C44);
+    const textColor = Color(0xFF4A3B32);
+    const bgColor = Color(0xFFFDF8F5);
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isWideScreen = screenWidth >= 800;
     final crossAxisCount = screenWidth >= 1200 ? 4 : (screenWidth >= 800 ? 3 : 2);
 
     return Scaffold(
+      backgroundColor: bgColor,
       appBar: AppBar(
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(widget.tableName, style: const TextStyle(fontSize: 18)),
-            Text('Staff: $_userName', style: const TextStyle(fontSize: 12, color: Colors.white70)),
+            Text(widget.tableName, style: const TextStyle(color: textColor, fontWeight: FontWeight.bold, fontSize: 18)),
+            Text('Staff: $_userName', style: const TextStyle(fontSize: 12, color: Colors.grey)),
           ],
         ),
-        backgroundColor: const Color(0xFFD38C44),
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: textColor,
+        elevation: 0,
+        iconTheme: const IconThemeData(color: textColor),
         actions: [
           IconButton(
-            icon: const Icon(Icons.list_alt),
+            icon: const Icon(Icons.list_alt, color: primaryColor),
             tooltip: 'Active Orders',
             onPressed: () {
               Navigator.push(
@@ -265,21 +276,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
               );
             },
           ),
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () async {
-              await _apiService.logout();
-              if (mounted) {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LoginScreen()),
-                );
-              }
-            },
-          ),
         ],
       ),
+      drawer: const AppDrawer(),
       body: Row(
         children: [
           // Menu Section
@@ -306,7 +305,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       initiallyExpanded: true,
                       title: Text(
                         category.name,
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: textColor),
                       ),
                       children: [
                         GridView.builder(
@@ -325,6 +324,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               onTap: () => _addToCart(item),
                               child: Card(
                                 elevation: 2,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(14),
+                                  side: const BorderSide(color: Color(0xFFE8DCCB), width: 2),
+                                ),
                                 child: Padding(
                                   padding: const EdgeInsets.all(8.0),
                                   child: Column(
@@ -333,14 +336,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     children: [
                                       Text(
                                         item.name,
-                                        style: const TextStyle(fontWeight: FontWeight.bold),
+                                        style: const TextStyle(fontWeight: FontWeight.bold, color: textColor),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
                                         '₹${item.price.toStringAsFixed(2)}',
-                                        style: const TextStyle(color: Colors.deepOrange),
+                                        style: const TextStyle(color: primaryColor, fontWeight: FontWeight.bold),
                                       ),
                                     ],
                                   ),
@@ -358,11 +361,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
           // Cart Section for Wide Screens (Tablets / Desktops)
           if (isWideScreen) ...[
-            const VerticalDivider(width: 1),
+            const VerticalDivider(width: 1, color: Color(0xFFE8DCCB)),
             Expanded(
               flex: 2,
               child: Container(
-                color: Colors.grey.shade50,
+                color: Colors.white,
                 padding: const EdgeInsets.all(16.0),
                 child: _buildCartContent(null),
               ),
@@ -373,7 +376,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       // Floating Cart Bar for Mobile Phones (< 800px width)
       bottomNavigationBar: !isWideScreen && _cart.isNotEmpty
           ? Container(
-              color: Colors.deepOrange,
+              color: primaryColor,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -386,7 +389,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     onPressed: _showCartBottomSheet,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: Colors.deepOrange,
+                      foregroundColor: primaryColor,
                     ),
                     child: const Text('View Cart'),
                   ),
